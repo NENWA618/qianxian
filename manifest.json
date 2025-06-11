@@ -1,0 +1,74 @@
+{
+  "name": "千弦",
+  "short_name": "千弦",
+  "description": "千弦家族官方网站 - 一个温馨的家族社区",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#fdfaf2",
+  "theme_color": "#c2a469",
+  "orientation": "portrait",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "scope": "/",
+  "categories": ["social", "entertainment"],
+  "icons": [
+    {
+      "src": "qianxian.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+        {
+      "src": "qianxian.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "qianxian.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "查看家族成员",
+      "short_name": "成员",
+      "description": "查看千弦家族成员列表",
+      "url": "/members.html"
+    }
+  ]
+}
