@@ -60,30 +60,28 @@ app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 会话配置
+// 会话和CSRF cookie配置
+const isProduction = process.env.NODE_ENV === 'production';
+const cookieConfig = {
+  secure: isProduction,
+  httpOnly: true,
+  sameSite: isProduction ? 'none' : 'lax',
+  maxAge: 24 * 60 * 60 * 1000
+};
+
 app.use(session({
   secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 1天
-  },
+  cookie: cookieConfig,
   store: new (require('connect-pg-simple')(session))({
     pool: pool,
     tableName: 'user_sessions'
   })
 }));
 
-// CSRF保护配置
 const csrfProtection = csrf({
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
+  cookie: cookieConfig
 });
 
 // 应用CSRF保护中间件
