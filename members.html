@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>家族成员列表 - 千弦</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="qianxian.png">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header class="logo-header">
+    <img src="qianxian.png" alt="千弦 Logo" class="logo">
+    <h1>家族成员列表</h1>
+  </header>
+  <section class="about">
+    <table id="members-table" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>用户名</th>
+          <th id="th-action" style="display:none;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="members-tbody"></tbody>
+    </table>
+    <div id="member-detail" style="margin-top:2rem;"></div>
+  </section>
+  <script>
+    // 后端API基础地址
+    const API_BASE_URL = 'https://qianxian-backend.onrender.com';
+
+    // 判断当前用户是否为管理员
+    let isAdmin = false;
+
+    // 获取当前用户信息
+    fetch(API_BASE_URL + '/api/user', {
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+      isAdmin = data.isAuthenticated && data.user && data.user.is_admin;
+      if (isAdmin) document.getElementById('th-action').style.display = '';
+      loadMembers();
+    })
+    .catch(() => loadMembers());
+
+    // 加载成员列表
+    function loadMembers() {
+      fetch(API_BASE_URL + '/api/members', {
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) throw new Error('获取成员列表失败');
+        const tbody = document.getElementById('members-tbody');
+        tbody.innerHTML = '';
+        data.members.forEach(m => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${m.id}</td><td>${m.username}</td>`;
+          if (isAdmin) {
+            const btn = `<button onclick="showDetail(${m.id})">查看详情</button>`;
+            tr.innerHTML += `<td>${btn}</td>`;
+          }
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    // 管理员查看成员详情
+    function showDetail(id) {
+      fetch(API_BASE_URL + '/api/members/' + id, {
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) throw new Error('无权限或成员不存在');
+        const m = data.member;
+        document.getElementById('member-detail').innerHTML =
+          `<div style="background:#fffbe9;padding:1rem;border-radius:8px;">
+            <b>ID:</b> ${m.id}<br>
+            <b>用户名:</b> ${m.username}<br>
+            <b>创建时间:</b> ${m.created_at}<br>
+            <b>是否管理员:</b> ${m.is_admin ? '是' : '否'}
+          </div>`;
+      })
+      .catch(err => {
+        document.getElementById('member-detail').textContent = err.message;
+      });
+    }
+  </script>
+</body>
+</html>
