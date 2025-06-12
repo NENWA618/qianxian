@@ -9,6 +9,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const csrf = require('csurf');
 const helmet = require('helmet');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -29,8 +30,13 @@ app.use(cors({
     'http://localhost:3000',
     'https://qianxian-backend.onrender.com'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-CSRF-Token']
 }));
+
+// 处理预检请求
+app.options('*', cors());
 
 // 生产环境强制HTTPS
 if (process.env.NODE_ENV === 'production') {
@@ -56,13 +62,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // 会话配置
 app.use(session({
-  secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 1天
   },
   store: new (require('connect-pg-simple')(session))({
@@ -71,8 +77,16 @@ app.use(session({
   })
 }));
 
-// CSRF保护
-const csrfProtection = csrf({ cookie: true });
+// CSRF保护配置
+const csrfProtection = csrf({
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
+});
+
+// 应用CSRF保护中间件
 app.use(csrfProtection);
 
 app.use(passport.initialize());
@@ -140,7 +154,7 @@ app.get('/api/csrf-token', (req, res) => {
 });
 
 // 用户认证路由
-app.post('/api/login', passport.authenticate('local'), (req, res) => {
+app.post('/api/login', csrfProtection, passport.authenticate('local'), (req, res) => {
   res.json({ 
     success: true, 
     user: {
@@ -150,7 +164,7 @@ app.post('/api/login', passport.authenticate('local'), (req, res) => {
   });
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', csrfProtection, (req, res) => {
   req.logout();
   res.clearCookie('connect.sid');
   res.json({ success: true });
@@ -171,7 +185,7 @@ app.get('/api/user', (req, res) => {
 });
 
 // 用户注册路由
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', csrfProtection, async (req, res) => {
   try {
     const { username, password } = req.body;
     
