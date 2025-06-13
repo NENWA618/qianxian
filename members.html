@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>家族成员列表 - 千弦</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="qianxian.png">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header class="logo-header">
+    <img src="qianxian.png" alt="千弦 Logo" class="logo">
+    <h1>家族成员列表</h1>
+  </header>
+  <section class="about">
+    <table id="members-table" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>用户名</th>
+          <th id="th-action" style="display:none;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="members-tbody"></tbody>
+    </table>
+    <div id="member-detail" style="margin-top:2rem;"></div>
+  </section>
+  <script>
+    // 后端API基础地址
+    const API_BASE_URL = 'https://qianxian-backend.onrender.com';
+
+    // 当前用户信息
+    let isAdmin = false;
+    let currentUser = null;
+
+    // 获取CSRF Token的辅助函数
+    async function getCsrfToken() {
+      const res = await fetch(API_BASE_URL + '/api/csrf-token', { credentials: 'include' });
+      const data = await res.json();
+      return data.token;
+    }
+
+    // 获取当前用户信息
+    fetch(API_BASE_URL + '/api/user', {
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+      currentUser = data.user || {};
+      isAdmin = data.isAuthenticated && data.user && data.user.is_admin;
+      if (isAdmin) document.getElementById('th-action').style.display = '';
+      loadMembers();
+    })
+    .catch(() => loadMembers());
+
+    // 加载成员列表
+    function loadMembers() {
+      fetch(API_BASE_URL + '/api/members', {
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) throw new Error('获取成员列表失败');
+        const tbody = document.getElementById('members-tbody');
+        tbody.innerHTML = '';
+        data.members.forEach(m => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${m.id}</td><td>${m.username}</td>`;
+          if (isAdmin) {
+            const btn = `<button onclick="showDetail(${m.id})">查看详情</button>`;
+            tr.innerHTML += `<td>${btn}</td>`;
+          }
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    // 查看成员详情并显示权限操作按钮
+    function showDetail(id) {
+      fetch(API_BASE_URL + '/api/members/' + id, {
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) throw new Error('无权限或成员不存在');
+        const m = data.member;
+        let html = `
+          <div style="background:#fffbe9;padding:1rem;border-radius:8px;">
+            <b>ID:</b> ${m.id}<br>
+            <b>用户名:</b> ${m.username}<br>
+            <b>创建时间:</b> ${m.created_at}<br>
+            <b>是否管理员:</b> ${m.is_admin ? '是' : '否'}<br>
+            <b>是否超管:</b> ${m.is_super_admin ? '是' : '否'}
+          </div>
+        `;
+
+        // 权限按钮区域
+        let btnHtml = '';
+
+        // 不能操作自己
+        const notSelf = currentUser && m.id !== currentUser.id;
+
+        // 赋予/取消管理员按钮（创始人和超管都能操作，不能操作自己和创始人）
+        if (
+          notSelf &&
+          (currentUser.id === 1 || currentUser.is_super_admin) &&
+          m.id !== 1
+        ) {
+          btnHtml += `
+            <button onclick="setAdmin(${m.id}, ${!m.is_admin})" style="background:#c2a469;color:#fff;border:none;padding:0.5rem 1.2rem;border-radius:8px;cursor:pointer;margin-right:1rem;">
+              ${m.is_admin ? '取消管理员' : '赋予管理员'}
+            </button>
+            <span id="admin-msg"></span>
+          `;
+        }
+
+        // 赋予/取消超管按钮（仅创始人可见，不能操作自己）
+        if (currentUser && currentUser.id === 1 && m.id !== 1) {
+          btnHtml += `
+            <button onclick="setSuperAdmin(${m.id}, ${!m.is_super_admin})" style="background:#c2a469;color:#fff;border:none;padding:0.5rem 1.2rem;border-radius:8px;cursor:pointer;">
+              ${m.is_super_admin ? '取消超管' : '赋予超管'}
+            </button>
+            <span id="super-admin-msg"></span>
+          `;
+        }
+
+        if (btnHtml) {
+          html += `<div style="margin-top:1rem;">${btnHtml}</div>`;
+        }
+
+        document.getElementById('member-detail').innerHTML = html;
+      })
+      .catch(err => {
+        document.getElementById('member-detail').textContent = err.message;
+      });
+    }
+
+    // 赋予/取消管理员
+    async function setAdmin(userId, isAdmin) {
+      const msg = document.getElementById('admin-msg');
+      msg.textContent = '操作中...';
+      try {
+        const token = await getCsrfToken();
+        const res = await fetch(API_BASE_URL + '/api/admin/set-admin', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': token
+          },
+          body: JSON.stringify({ userId, isAdmin })
+        });
+        const data = await res.json();
+        msg.textContent = data.success ? '操作成功' : (data.message || '操作失败');
+        msg.style.color = data.success ? 'green' : 'red';
+        if (data.success) setTimeout(() => showDetail(userId), 800);
+      } catch (e) {
+        msg.textContent = '操作失败';
+        msg.style.color = 'red';
+      }
+    }
+
+    // 赋予/取消超管（仅创始人）
+    async function setSuperAdmin(userId, isSuperAdmin) {
+      const msg = document.getElementById('super-admin-msg');
+      msg.textContent = '操作中...';
+      try {
+        const token = await getCsrfToken();
+        const res = await fetch(API_BASE_URL + '/api/admin/set-super-admin', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': token
+          },
+          body: JSON.stringify({ userId, isSuperAdmin })
+        });
+        const data = await res.json();
+        msg.textContent = data.success ? '操作成功' : (data.message || '操作失败');
+        msg.style.color = data.success ? 'green' : 'red';
+        if (data.success) setTimeout(() => showDetail(userId), 800);
+      } catch (e) {
+        msg.textContent = '操作失败';
+        msg.style.color = 'red';
+      }
+    }
+  </script>
+</body>
+</html>
