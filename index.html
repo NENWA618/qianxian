@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#e8dfc8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="千弦">
+<title>千弦家族官方网站</title>
+
+<link rel="icon" href="qianxian.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="qianxian.png">
+<link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <!-- Header Section -->
+<header class="logo-header">
+  <img src="qianxian.png" alt="千弦 Logo" class="logo">
+  <h1>千弦</h1>
+  <div class="header-links">
+    <h2><a href="members.html">成员列表</a></h2>
+    <h2><a href="zhinan.html">使用指南</a></h2>
+    <!-- 好友申请入口按钮将由 main.js 动态插入到 admin-link 前 -->
+  </div>
+  <!-- 新增：后台管理入口占位 -->
+  <div id="admin-link" style="text-align:right;margin:0.5rem 0;"></div>
+</header>
+
+  <!-- About Section -->
+<section class="about" id="about-section">
+</section>
+
+  <!-- Announcement Section -->
+<section class="announcement"  id="announcement-section">
+</section>
+
+<script src="main.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  // 防XSS转义
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // 加载首页内容，增加错误处理和XSS防护，并支持换行显示
+  fetch('https://qianxian-backend.onrender.com/api/site-content')
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('about-section').innerHTML = escapeHtml(data.content.about || '').replace(/\n/g, '<br>');
+        document.getElementById('announcement-section').innerHTML = escapeHtml(data.content.announcement || '').replace(/\n/g, '<br>');
+      } else {
+        document.getElementById('about-section').innerHTML = '<span style="color:red;">加载内容失败</span>';
+        document.getElementById('announcement-section').innerHTML = '';
+      }
+    })
+    .catch(() => {
+      document.getElementById('about-section').innerHTML = '<span style="color:red;">无法连接服务器，请稍后重试</span>';
+      document.getElementById('announcement-section').innerHTML = '';
+    });
+</script>
+</body>
+</html>
