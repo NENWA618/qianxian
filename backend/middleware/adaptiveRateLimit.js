@@ -2,6 +2,7 @@
  * 临界阻尼自适应速率限制中间件
  * 结合论文思想：根据流量波动动态调整限流阈值，防止突发拥塞与过度限制
  * 支持 windowMs、min、max、criticalDamping 参数
+ * 新增：同步性判据（请求间隔方差）限流，抑制突发团簇流量
  */
 
 const rateMap = new Map();
@@ -11,6 +12,9 @@ function adaptiveRateLimit(options = {}) {
   const min = options.min || 60;
   const max = options.max || 200;
   const criticalDamping = options.criticalDamping || false;
+
+  // βcrit判据（单位：毫秒^2，越小越容易触发同步性限流）
+  const beta_crit = 500 * 500;
 
   return (req, res, next) => {
     const key = req.ip;
@@ -26,7 +30,8 @@ function adaptiveRateLimit(options = {}) {
         gamma: 1,
         omega0: 1,
         noise: 0.1,
-        dynamicMax: min
+        dynamicMax: min,
+        timestamps: [now] // 新增：记录请求时间戳
       };
       rateMap.set(key, entry);
       return next();
@@ -38,12 +43,33 @@ function adaptiveRateLimit(options = {}) {
       entry.lastWindow = now;
       entry.lastRate = 0;
       entry.dynamicMax = min;
+      entry.timestamps = [now];
       return next();
     }
 
     entry.count += 1;
     const dt = (now - entry.last) / 1000;
     entry.last = now;
+
+    // 记录请求时间戳
+    entry.timestamps.push(now);
+    if (entry.timestamps.length > 20) entry.timestamps.shift();
+
+    // 计算同步性（请求间隔方差）
+    const intervals = [];
+    for (let i = 1; i < entry.timestamps.length; i++) {
+      intervals.push(entry.timestamps[i] - entry.timestamps[i - 1]);
+    }
+    let variance = 0;
+    if (intervals.length > 1) {
+      const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      variance = intervals.reduce((a, x) => a + (x - mean) ** 2, 0) / intervals.length;
+    }
+
+    // 同步性判据：如果请求高度同步（方差很小），提前限流或降低dynamicMax
+    if (variance < beta_crit) {
+      entry.dynamicMax = Math.max(entry.dynamicMax - 5, min);
+    }
 
     // 速率估算
     const currentRate = entry.count / ((now - entry.lastWindow) / 1000 + 1);
