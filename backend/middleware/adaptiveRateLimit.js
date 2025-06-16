@@ -3,6 +3,7 @@
 // 支持 windowMs、min、max、criticalDamping 参数
 // 新增：多维同步性判据（方差+熵+峰度），递归API分组限流，白名单IP跳过
 // 优化：普通GET请求极宽松，仅敏感操作严格限流，参数更丝滑
+// 优化：真实IP获取，兼容多级代理
 
 const rateMap = new Map();
 
@@ -46,6 +47,18 @@ function getGroupKey(req) {
   return 'default';
 }
 
+// 获取真实IP，兼容多级代理
+function getRealIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) {
+    // 可能有多个IP，取第一个非空
+    const ips = xff.split(',').map(ip => ip.trim()).filter(Boolean);
+    if (ips.length > 0) return ips[0];
+  }
+  // Express会自动识别 req.ip，但有时是 ::1 或 127.0.0.1
+  return req.ip;
+}
+
 function adaptiveRateLimit(options = {}) {
   const windowMs = options.windowMs || 15 * 60 * 1000;
   const min = options.min || 30; // 更宽松
@@ -61,10 +74,11 @@ function adaptiveRateLimit(options = {}) {
   const whitelist = ['127.0.0.1', '::1'];
 
   return (req, res, next) => {
-    if (whitelist.includes(req.ip)) return next();
+    const realIp = getRealIp(req);
+    if (whitelist.includes(realIp)) return next();
 
     const group = getGroupKey(req);
-    const key = req.ip + ':' + group;
+    const key = realIp + ':' + group;
     const now = Date.now();
     let entry = rateMap.get(key);
 
