@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>千弦家族网站使用指南（2025最新版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="qianxian.png">
+  <link rel="stylesheet" href="main.css">
+  <style>
+    .guide-container {
+      max-width: 900px;
+      width: 100%;
+      margin: 2rem auto;
+      background: #fdfaf2;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(194,164,105,0.07);
+      padding: 2.5rem 2rem;
+      font-size: 1.08rem;
+      line-height: 1.8;
+      box-sizing: border-box;
+      color: #3b2f2f;
+      border: 1.5px solid #e8dfc8;
+    }
+    .guide-container h1, .guide-container h2 {
+      color: #c2a469;
+      text-shadow: 0 1px 0 #fdfaf2;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .guide-container strong {
+      color: #b48a3a;
+      font-weight: bold;
+    }
+    .guide-container ul, .guide-container ol {
+      color: #4d3b1f;
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .guide-container li {
+      margin-bottom: 0.3em;
+    }
+    .guide-container code {
+      background: #f5f2e7;
+      color: #7c5c1a;
+      border: 1px solid #e8dfc8;
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+      font-size: 0.98em;
+    }
+    .guide-container a {
+      color: #b48a3a;
+      text-decoration: underline;
+      font-weight: bold;
+      transition: color 0.2s;
+    }
+    .guide-container a:hover {
+      color: #c2a469;
+    }
+    .guide-container p,
+    .guide-container li,
+    .guide-container ul,
+    .guide-container ol {
+      font-size: 1.07rem;
+      line-height: 1.8;
+    }
+    .guide-container hr {
+      border: none;
+      border-top: 1.5px solid #e8dfc8;
+      margin: 2rem 0;
+    }
+    .guide-container .tip,
+    .guide-container .warn {
+      display: block;
+      padding: 0.7em 1em;
+      border-radius: 8px;
+      margin: 1em 0;
+      font-size: 1rem;
+    }
+    .guide-container .tip {
+      background: #f5fbe9;
+      color: #3b5c1a;
+      border-left: 4px solid #6abf69;
+    }
+    .guide-container .warn {
+      background: #fff4e9;
+      color: #b85c1a;
+      border-left: 4px solid #e8a469;
+    }
+    .guide-container em {
+      color: #c2a469;
+      font-style: normal;
+    }
+    .guide-container ul {
+      list-style: disc inside;
+    }
+    .guide-container ol {
+      list-style: decimal inside;
+    }
+    .guide-container li::marker {
+      color: #c2a469;
+    }
+    @media (max-width: 600px) {
+      .guide-container {
+        padding: 1.2rem 0.5rem;
+        font-size: 0.98rem;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      .guide-container {
+        background: #23201a;
+        color: #f5e9d6;
+        border-color: #3b2f2f;
+      }
+      .guide-container h1, .guide-container h2 {
+        color: #e8dfc8;
+        text-shadow: 0 1px 0 #23201a;
+      }
+      .guide-container strong {
+        color: #ffe7a3;
+      }
+      .guide-container ul, .guide-container ol {
+        color: #e8dfc8;
+      }
+      .guide-container code {
+        background: #2d261a;
+        color: #ffe7a3;
+        border-color: #3b2f2f;
+      }
+      .guide-container a {
+        color: #ffe7a3;
+      }
+      .guide-container a:hover {
+        color: #c2a469;
+      }
+      .guide-container hr {
+        border-top: 1.5px solid #3b2f2f;
+      }
+      .guide-container .tip {
+        background: #2a3320;
+        color: #b6e69a;
+        border-left-color: #6abf69;
+      }
+      .guide-container .warn {
+        background: #332a20;
+        color: #ffd6a3;
+        border-left-color: #e8a469;
+      }
+      .guide-container li::marker {
+        color: #ffe7a3;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="logo-header">
+    <img src="qianxian.png" alt="千弦 Logo" class="logo" loading="lazy">
+    <h1>千弦家族网站使用指南（2025最新版）</h1>
+    <div style="text-align:right;margin-bottom:1rem;width:100%;">
+      <a href="index.html">← 返回首页</a>
+    </div>
+  </header>
+  <main class="guide-container" tabindex="0">
+    <p style="color:#b48a3a;font-size:1rem;text-align:center;margin-bottom:1.5rem;">
+      本指南适用于2025年6月后版本，后续如有更新请关注公告。
+    </p>
+    <div class="tip">
+      <strong>特别说明：</strong> 创始人（第一个注册用户）会自动审核通过并获得最高权限，无需等待管理员审核。普通用户注册后需管理员或超管审核通过后才能登录。
+    </div>
+    <h2>一、普通用户功能</h2>
+    <ol>
+      <li>
+        <strong>注册账号</strong>
+        <ul>
+          <li>打开网站首页，点击“注册”按钮，填写用户名和密码。</li>
+          <li>用户名不再限制格式，只要不与他人重复即可。</li>
+          <li>密码要求：至少8位。</li>
+          <li>注册成功后会提示“请等待管理员或超管审核通过”，审核通过后才能登录使用。请勿重复注册。</li>
+          <li>如遇“用户名已存在”或“密码长度不足”等提示，请根据页面提示修改后再提交。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>登录/退出</strong>
+        <ul>
+          <li>在首页顶部填写用户名和密码，点击“登录”。</li>
+          <li>登录后页面顶部会显示欢迎信息和“退出登录”按钮，点击即可安全退出账号。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>消息中心</strong>
+        <ul>
+          <li>登录后，页面顶部会显示“消息中心”按钮，红点提示有新消息。</li>
+          <li>可在消息中心统一查看和处理好友申请、后台审核（管理员）、系统通知等。</li>
+          <li>系统通知仅创始人可编辑，所有用户可在“系统通知”Tab查看。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>修改密码</strong>
+        <ul>
+          <li>登录后，点击页面顶部的“修改密码”链接，弹出修改密码窗口。</li>
+          <li>输入原密码和新密码（新密码至少8位），点击“提交”即可修改。</li>
+          <li>修改成功后会自动退出登录，请使用新密码重新登录。</li>
+          <li>如忘记原密码，暂不支持自助找回密码，请联系管理员协助重置。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>查看家族成员</strong>
+        <ul>
+          <li>登录后，点击首页标题或导航进入“家族成员列表”页面。</li>
+          <li>可查看所有成员的ID、用户名和权限徽章（如“管理员”、“超管”等）。</li>
+          <li>点击成员姓名可查看该成员的详细信息（包括昵称、注册时间、好友状态等）。所有已登录用户均可查看详情。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>添加好友与好友申请管理</strong>
+        <ul>
+          <li>在成员列表中，点击“添加好友”按钮会向对方发送好友申请。</li>
+          <li>对方同意后，双方才会成为好友。已添加的好友会显示“已是好友”状态。</li>
+          <li>不能添加自己为好友，不能重复发送申请。已发送申请后按钮会显示“申请中...”状态，等待对方处理。</li>
+          <li>好友申请有“等待同意”状态，暂不支持撤回申请，请耐心等待对方处理。</li>
+          <li>所有已登录用户可在页面顶部点击“消息中心”按钮，切换到“好友申请”Tab，查看和处理收到的好友申请。</li>
+          <li>收到好友申请后，可选择同意或拒绝，对方会收到结果提示。处理后，双方会自动成为好友。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>聊天室</strong>
+        <ul>
+          <li>登录后，首页下方会显示聊天室窗口。</li>
+          <li>可与所有在线成员进行公聊，也可与已添加的好友进行私聊。</li>
+          <li>私聊仅限已互为好友的成员之间开启。</li>
+          <li>消息旁会显示用户ID和权限徽章，支持消息历史加载和切换聊天对象。</li>
+          <li>系统自动保留最新600条消息，历史消息会自动清理。</li>
+          <li>支持图片发送和@成员功能，图片可通过上传或粘贴方式发送，@输入时会弹出成员列表。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>二、管理员功能（is_admin 用户）</h2>
+    <ol>
+      <li>
+        <strong>编辑首页内容</strong>
+        <ul>
+          <li>登录后，右上角会出现“编辑首页内容”按钮，仅管理员及以上可见，普通用户不可见。</li>
+          <li>可编辑“关于我们”和“公告”内容，保存后全站生效，所有用户可见。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>查看成员详细信息</strong>
+        <ul>
+          <li>在“家族成员列表”页面，管理员会看到“操作”列。</li>
+          <li>点击“查看详情”可查看成员的注册时间、权限等级等信息，并显示对应徽章。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>权限管理（仅限超管/创始人）</strong>
+        <ul>
+          <li>管理员身份可由超管或创始人赋予或取消（不能操作创始人）。</li>
+          <li>进入成员详情页，点击“赋予管理员”或“取消管理员”按钮进行操作。</li>
+          <li>管理员只能审核用户和编辑首页内容，不能赋予/取消超管权限，只有创始人可操作超管。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>审核新注册用户</strong>
+        <ul>
+          <li>登录后，页面顶部会出现“消息中心”按钮，红点提示有新待审核用户。</li>
+          <li>点击“消息中心”，切换到“后台审核”Tab，可查看所有待审核的新注册用户。</li>
+          <li>点击“通过”按钮即可审核通过，审核后该用户可正常登录。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>好友申请管理</strong>
+        <ul>
+          <li>所有已登录用户可在页面顶部点击“消息中心”按钮，切换到“好友申请”Tab，查看和处理收到的好友申请。</li>
+          <li>可选择同意或拒绝，处理后对方会收到结果提示。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>三、超管与创始人功能</h2>
+    <ol>
+      <li>
+        <strong>超管（is_super_admin 用户）</strong>
+        <ul>
+          <li>超管拥有赋予/取消管理员权限的能力（不能操作创始人）。</li>
+          <li>超管身份可由创始人赋予或取消。</li>
+          <li>超管同样拥有审核新注册用户和处理好友申请的权限。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>创始人（ID=1）</strong>
+        <ul>
+          <li>创始人拥有最高权限，可赋予/取消任意成员的超管和管理员身份（除自己外）。</li>
+          <li>进入成员详情页，可见“赋予超管/取消超管”按钮，仅创始人可操作。</li>
+          <li>系统通知仅创始人可编辑，所有用户可见。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>权限说明</strong>
+        <ul>
+          <li>创始人（ID=1）不可被降权，且始终为超管和管理员。</li>
+          <li>超管可管理管理员权限，但不能赋予/取消超管，仅创始人可操作超管权限。</li>
+          <li>权限变更操作均需确认，操作后会有提示。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>四、安全与隐私</h2>
+    <ul>
+      <li>所有操作均需登录，重要操作（如修改内容、权限管理、审核新用户）需管理员或超管身份。</li>
+      <li>网站采用 <strong>HTTPS</strong>、<strong>CSRF 防护</strong>和会话安全机制，保障数据安全。</li>
+      <li>所有重要操作（如注册、登录、修改密码、权限变更等）均需CSRF令牌验证，防止伪造请求。</li>
+      <li>聊天室仅限登录用户，消息实时同步，用户身份和权限一目了然。</li>
+      <li>管理员和超管操作均有权限校验，防止越权和误操作。</li>
+      <li>用户密码加密存储，个人信息仅用于家族社区内部交流。</li>
+      <li>请勿在公共设备上保存密码或自动登录，防止账号被盗用。</li>
+      <li>建议定期修改密码，遇到异常请及时联系管理员。</li>
+      <li>暂不支持自助找回密码，如忘记请联系管理员协助重置。</li>
+      <li>支持手机访问和添加到桌面，体验更佳（PWA 支持）。如遇界面显示异常可尝试刷新或清除浏览器缓存。</li>
+    </ul>
+
+    <h2>五、常见问题解答</h2>
+    <ul>
+      <li><strong>注册后无法登录？</strong><br>
+        新注册账号需要管理员或超管审核通过后才能登录，创始人注册自动审核通过。请耐心等待审核。如有疑问可联系管理员。</li>
+      <li><strong>注册/登录失败？</strong><br>
+        检查用户名是否已存在、密码长度是否足够，或联系管理员协助。</li>
+      <li><strong>如何修改密码？</strong><br>
+        登录后点击页面顶部“修改密码”链接，输入原密码和新密码即可修改。修改成功后需重新登录。</li>
+      <li><strong>忘记密码怎么办？</strong><br>
+        暂不支持自助找回密码，如忘记请联系管理员协助重置。</li>
+      <li><strong>权限操作失败？</strong><br>
+        仅超管或创始人可进行权限管理，普通管理员无权操作超管权限。</li>
+      <li><strong>聊天室无法使用？</strong><br>
+        请确认已登录账号，未登录用户无法进入聊天室。如遇网络问题请刷新页面或稍后重试。</li>
+      <li><strong>好友功能无法使用？</strong><br>
+        需登录后才能添加好友，不能添加自己为好友。好友申请需对方同意后才生效。已发送申请后请等待对方处理，暂不支持撤回。</li>
+      <li><strong>如何处理好友申请/后台审核？</strong><br>
+        登录后点击页面顶部“消息中心”按钮，在对应Tab统一查看和处理好友申请、后台审核等。</li>
+      <li><strong>系统通知在哪里查看？</strong><br>
+        系统通知会在“消息中心”弹窗的“系统通知”Tab显示，如有重要公告会第一时间推送。</li>
+      <li><strong>审核通过后有通知吗？</strong><br>
+        审核通过后可直接登录，暂不支持邮件/短信通知，请关注消息中心或联系管理员。</li>
+      <li><strong>遇到异常或建议？</strong><br>
+        请联系网站管理员或创始人，欢迎大家共同维护温馨的家族社区！</li>
+    </ul>
+
+    <h2>六、温馨提示</h2>
+    <ul>
+      <li>请妥善保管账号密码，勿与他人共享。</li>
+      <li>请文明发言，尊重他人，共同营造和谐的社区氛围。</li>
+      <li>管理员和超管请谨慎操作权限变更和用户审核，避免误操作。</li>
+      <li>支持手机访问和添加到桌面，体验更佳。如遇界面异常可尝试刷新或清除浏览器缓存。</li>
+      <li>如有新功能上线，请关注公告和本指南更新。</li>
+    </ul>
+
+    <hr>
+    <p style="text-align:center;color:#888;margin-top:2rem;">
+      如有疑问，请联系网站管理员或创始人。<br>
+      欢迎大家共同维护千弦家族的温馨社区！
+    </p>
+    <p style="text-align:center;color:#bbb;font-size:0.95rem;margin-top:1.5rem;">
+      © 2025 千弦家族社区 保留所有权利
+    </p>
+  </main>
+</body>
+</html>
