@@ -1,0 +1,452 @@
+openapi: 3.0.3
+info:
+  title: 千弦家族社区 API
+  description: |
+    千弦家族社区后端接口文档。支持用户注册、登录、成员管理、好友、聊天、内容管理等功能。
+    所有接口均为 RESTful 风格，部分接口需登录或具备相应权限。
+  version: "1.0.0"
+  contact:
+    name: 千弦家族社区
+    url: https://qianxian-backend.onrender.com
+servers:
+  - url: https://qianxian-backend.onrender.com
+    description: 生产环境
+  - url: http://localhost:3000
+    description: 本地开发
+
+tags:
+  - name: 用户
+  - name: 成员
+  - name: 好友
+  - name: 聊天
+  - name: 内容
+  - name: 管理员
+  - name: 系统
+
+paths:
+  /api/register:
+    post:
+      tags: [用户]
+      summary: 用户注册
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: testuser
+                password:
+                  type: string
+                  example: "12345678"
+      responses:
+        '201':
+          description: 注册成功
+        '400':
+          description: 参数错误或用户名已存在
+        '500':
+          description: 服务器错误
+
+  /api/login:
+    post:
+      tags: [用户]
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: 登录成功
+        '401':
+          description: 登录失败
+
+  /api/logout:
+    post:
+      tags: [用户]
+      summary: 退出登录
+      responses:
+        '200':
+          description: 退出成功
+
+  /api/user:
+    get:
+      tags: [用户]
+      summary: 获取当前登录用户信息
+      responses:
+        '200':
+          description: 用户信息
+
+  /api/change-password:
+    post:
+      tags: [用户]
+      summary: 修改密码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: 修改成功
+        '400':
+          description: 参数错误
+        '401':
+          description: 未登录
+
+  /api/members:
+    get:
+      tags: [成员]
+      summary: 获取成员列表
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: 页码
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+          description: 每页数量
+        - in: query
+          name: autoPageSize
+          schema:
+            type: string
+          description: 是否自适应分页
+      responses:
+        '200':
+          description: 成员列表
+
+  /api/members/{id}:
+    get:
+      tags: [成员]
+      summary: 获取单个成员详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成员详情
+        '403':
+          description: 无权限
+
+  /api/friends:
+    get:
+      tags: [好友]
+      summary: 获取好友列表
+      responses:
+        '200':
+          description: 好友列表
+
+  /api/friends/request:
+    post:
+      tags: [好友]
+      summary: 发送好友申请
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                toUserId:
+                  type: integer
+      responses:
+        '200':
+          description: 申请成功
+        '400':
+          description: 参数错误
+
+  /api/friends/requests:
+    get:
+      tags: [好友]
+      summary: 获取好友申请（收到/发出）
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [received, sent]
+          description: 类型
+      responses:
+        '200':
+          description: 申请列表
+
+  /api/friends/respond:
+    post:
+      tags: [好友]
+      summary: 同意/拒绝好友申请
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: integer
+                action:
+                  type: string
+                  enum: [accept, decline]
+      responses:
+        '200':
+          description: 操作成功
+
+  /api/chat/messages:
+    get:
+      tags: [聊天]
+      summary: 获取聊天消息
+      parameters:
+        - in: query
+          name: targetType
+          schema:
+            type: string
+            enum: [public, private]
+        - in: query
+          name: targetId
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: beforeId
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 消息列表
+
+  /api/chat/unread:
+    get:
+      tags: [聊天]
+      summary: 获取未读消息状态
+      responses:
+        '200':
+          description: 未读消息
+
+  /api/chat/read:
+    post:
+      tags: [聊天]
+      summary: 标记消息为已读
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetType:
+                  type: string
+                targetId:
+                  type: integer
+      responses:
+        '200':
+          description: 标记成功
+
+  /api/site-content:
+    get:
+      tags: [内容]
+      summary: 获取首页内容
+      responses:
+        '200':
+          description: 内容
+
+    post:
+      tags: [内容]
+      summary: 修改首页内容（仅管理员）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+      responses:
+        '200':
+          description: 修改成功
+        '403':
+          description: 无权限
+
+  /api/system-notification:
+    get:
+      tags: [系统]
+      summary: 获取系统通知
+      responses:
+        '200':
+          description: 通知内容
+
+    post:
+      tags: [系统]
+      summary: 编辑系统通知（仅创始人）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        '200':
+          description: 修改成功
+        '403':
+          description: 无权限
+
+  /api/admin/pending-users:
+    get:
+      tags: [管理员]
+      summary: 获取待审核用户列表
+      responses:
+        '200':
+          description: 待审核用户
+
+  /api/admin/approve-user:
+    post:
+      tags: [管理员]
+      summary: 审核通过用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+      responses:
+        '200':
+          description: 审核成功
+
+  /api/admin/set-admin:
+    post:
+      tags: [管理员]
+      summary: 赋予/取消管理员
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                isAdmin:
+                  type: boolean
+      responses:
+        '200':
+          description: 操作成功
+
+  /api/admin/set-super-admin:
+    post:
+      tags: [管理员]
+      summary: 赋予/取消超管（仅创始人）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                isSuperAdmin:
+                  type: boolean
+      responses:
+        '200':
+          description: 操作成功
+
+  /api/csrf-token:
+    get:
+      tags: [系统]
+      summary: 获取CSRF令牌
+      responses:
+        '200':
+          description: CSRF令牌
+
+  /health:
+    get:
+      tags: [系统]
+      summary: 健康检查
+      responses:
+        '200':
+          description: 服务健康
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: qianxian.sid
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        is_admin:
+          type: boolean
+        is_super_admin:
+          type: boolean
+        is_approved:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    FriendRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        from_user_id:
+          type: integer
+        to_user_id:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender_id:
+          type: integer
+        target_type:
+          type: string
+        target_id:
+          type: integer
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-
