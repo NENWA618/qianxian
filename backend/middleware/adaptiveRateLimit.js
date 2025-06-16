@@ -1,47 +1,70 @@
-//临界阻尼自适应速率限制中间件（优化版）
-//结合论文思想：根据流量波动动态调整限流阈值，防止突发拥塞与过度限制
-//支持 windowMs、min、max、criticalDamping 参数
-//新增：双阈值同步性判据（βcrit, βexit）限流，抑制突发团簇流量
-//优化：调高 min/max，放宽同步性判据，仅对敏感操作严格限流，支持白名单IP
-//新增：多维同步性判据（熵+方差），定期清理过期记录，防止内存泄漏
+// 临界阻尼自适应速率限制中间件（增强版）
+// 结合论文思想：递归熵动力学、多维同步性判据、临界阻尼自适应
+// 支持 windowMs、min、max、criticalDamping 参数
+// 新增：多维同步性判据（方差+熵+峰度），递归API分组限流，白名单IP跳过
+// 优化：普通GET请求极宽松，仅敏感操作严格限流，参数更丝滑
 
 const rateMap = new Map();
 
+// 统计量工具
 function entropy(arr) {
   if (!arr.length) return 0;
   const sum = arr.reduce((a, b) => a + b, 0) || 1;
   const probs = arr.map(x => x / sum).filter(p => p > 0);
   return -probs.reduce((a, p) => a + p * Math.log(p), 0);
 }
+function variance(arr) {
+  if (arr.length < 2) return 0;
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  return arr.reduce((a, x) => a + (x - mean) ** 2, 0) / arr.length;
+}
+function kurtosis(arr) {
+  if (arr.length < 4) return 0;
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  const std = Math.sqrt(variance(arr));
+  if (std === 0) return 0;
+  const n = arr.length;
+  return n * arr.reduce((a, x) => a + ((x - mean) / std) ** 4, 0) / ((n - 1) * (n - 2)) - 3;
+}
 
 // 定期清理过期IP记录，防止内存泄漏
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateMap.entries()) {
-    if (now - entry.lastWindow > 60 * 60 * 1000) { // 1小时无活动
+    if (now - entry.lastWindow > 60 * 60 * 1000) {
       rateMap.delete(key);
     }
   }
-}, 30 * 60 * 1000); // 每30分钟清理一次
+}, 30 * 60 * 1000);
+
+// 递归API分组限流（如 /api/chat, /api/members, ...）
+function getGroupKey(req) {
+  if (req.path.startsWith('/api/chat')) return 'chat';
+  if (req.path.startsWith('/api/members')) return 'members';
+  if (req.path.startsWith('/api/friends')) return 'friends';
+  if (req.path.startsWith('/api/admin')) return 'admin';
+  return 'default';
+}
 
 function adaptiveRateLimit(options = {}) {
   const windowMs = options.windowMs || 15 * 60 * 1000;
-  const min = options.min || 100; // 优化：调高默认值
-  const max = options.max || 400; // 优化：调高默认值
+  const min = options.min || 30; // 更宽松
+  const max = options.max || 400;
   const criticalDamping = options.criticalDamping || false;
 
   // βcrit判据（触发限流），βexit判据（解除限流），单位：毫秒^2
-  const beta_crit = 1500 * 1500; // 优化：放宽同步性判据
-  const beta_exit = 3000 * 3000; // 优化：放宽同步性判据
-  const entropyCrit = 1.2; // 新增：熵判据，越低越同步
+  const beta_crit = 2500 * 2500; // 更宽松
+  const beta_exit = 5000 * 5000;
+  const entropyCrit = 1.5; // 更宽松
 
-  // 可选：白名单IP跳过限流（如本地开发）
+  // 白名单IP跳过限流
   const whitelist = ['127.0.0.1', '::1'];
 
   return (req, res, next) => {
     if (whitelist.includes(req.ip)) return next();
 
-    const key = req.ip;
+    const group = getGroupKey(req);
+    const key = req.ip + ':' + group;
     const now = Date.now();
     let entry = rateMap.get(key);
 
@@ -55,8 +78,8 @@ function adaptiveRateLimit(options = {}) {
         omega0: 1,
         noise: 0.1,
         dynamicMax: min,
-        timestamps: [now], // 记录请求时间戳
-        isLimited: false,  // 是否处于限流状态
+        timestamps: [now],
+        isLimited: false,
         limitedAt: null
       };
       rateMap.set(key, entry);
@@ -77,38 +100,33 @@ function adaptiveRateLimit(options = {}) {
 
     entry.count += 1;
     entry.last = now;
-
-    // 记录请求时间戳
     entry.timestamps.push(now);
-    if (entry.timestamps.length > 20) entry.timestamps.shift();
+    if (entry.timestamps.length > 30) entry.timestamps.shift();
 
     // 只对敏感操作（POST/PUT/DELETE）启用同步性限流
     const isSensitive = ['POST', 'PUT', 'DELETE'].includes(req.method);
 
-    // 计算同步性（请求间隔方差+熵）
+    // 多维同步性判据（方差+熵+峰度）
     const intervals = [];
     for (let i = 1; i < entry.timestamps.length; i++) {
       intervals.push(entry.timestamps[i] - entry.timestamps[i - 1]);
     }
-    let variance = 0;
-    if (intervals.length > 1) {
-      const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      variance = intervals.reduce((a, x) => a + (x - mean) ** 2, 0) / intervals.length;
-    }
+    const intervalVariance = variance(intervals);
     const intervalEntropy = entropy(intervals);
+    const intervalKurtosis = kurtosis(intervals);
 
-    // 双阈值同步性判据（仅敏感操作启用，方差+熵）
+    // 判据更丝滑：三者均低于阈值才限流
+    const metrics = [intervalVariance < beta_crit, intervalEntropy < entropyCrit, Math.abs(intervalKurtosis) < 10];
     if (
       isSensitive &&
       !entry.isLimited &&
-      variance < beta_crit &&
-      intervalEntropy < entropyCrit
+      metrics.every(Boolean)
     ) {
       entry.isLimited = true;
       entry.limitedAt = now;
     } else if (
       entry.isLimited &&
-      (variance > beta_exit || intervalEntropy > entropyCrit + 0.5)
+      (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20)
     ) {
       entry.isLimited = false;
       entry.limitedAt = null;
@@ -137,6 +155,11 @@ function adaptiveRateLimit(options = {}) {
       } else if (currentRate < entry.dynamicMax * 0.5) {
         entry.dynamicMax = Math.min(entry.dynamicMax + 1, max);
       }
+    }
+
+    // 普通GET请求极宽松（只超max才限流）
+    if (!isSensitive && entry.count <= max) {
+      return next();
     }
 
     // 限流判断（同步性限流 或 请求数超限）
