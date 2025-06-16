@@ -75,7 +75,14 @@ function adaptiveRateLimit(options = {}) {
 
   return (req, res, next) => {
     const realIp = getRealIp(req);
-    if (whitelist.includes(realIp)) return next();
+
+    // Render/Vercel/Cloudflare 代理下的本地/内网IP也跳过限流
+    if (
+      whitelist.includes(realIp) ||
+      realIp === '::ffff:127.0.0.1' ||
+      realIp.startsWith('10.') ||
+      realIp.startsWith('100.')
+    ) return next();
 
     const group = getGroupKey(req);
     const key = realIp + ':' + group;
