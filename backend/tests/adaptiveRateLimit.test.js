@@ -74,11 +74,20 @@ describe('adaptiveRateLimit middleware', () => {
     expect([200, 429]).toContain(res.status);
   });
 
-  it('should skip rate limit for whitelist IP', async () => {
-    // 模拟白名单IP
+  it('should skip rate limit for whitelist IP (X-Forwarded-For)', async () => {
+    // 模拟白名单IP通过 X-Forwarded-For
     const res = await request(app)
       .get('/')
       .set('X-Forwarded-For', '127.0.0.1');
+    expect(res.status).toBe(200);
+  });
+
+  it('should skip rate limit for whitelist IP (req.ip)', async () => {
+    // 模拟白名单IP通过 req.ip
+    // supertest 默认 req.ip 为 ::ffff:127.0.0.1，需兼容
+    const res = await request(app)
+      .get('/')
+      .set('X-Forwarded-For', '::1');
     expect(res.status).toBe(200);
   });
 });
