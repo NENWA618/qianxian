@@ -90,4 +90,36 @@ describe('adaptiveRateLimit middleware', () => {
       .set('X-Forwarded-For', '::1');
     expect(res.status).toBe(200);
   });
+
+  it('should skip rate limit for ::ffff:127.0.0.1', async () => {
+    // 兼容 Render/Cloudflare 代理下的本地回环地址
+    const res = await request(app)
+      .get('/')
+      .set('X-Forwarded-For', '::ffff:127.0.0.1');
+    expect(res.status).toBe(200);
+  });
+
+  it('should skip rate limit for 10.x.x.x internal IP', async () => {
+    // 兼容 Render/Vercel 内网IP
+    const res = await request(app)
+      .get('/')
+      .set('X-Forwarded-For', '10.0.0.5');
+    expect(res.status).toBe(200);
+  });
+
+  it('should skip rate limit for 100.x.x.x internal IP', async () => {
+    // 兼容 Render/Vercel 内网IP
+    const res = await request(app)
+      .get('/')
+      .set('X-Forwarded-For', '100.64.0.5');
+    expect(res.status).toBe(200);
+  });
+
+  it('should skip rate limit for 127.0.0.1 with custom header', async () => {
+    // 通过自定义头部绕过限流
+    const res = await request(app)
+      .get('/')
+      .set('X-Custom-Header', 'bypass');
+    expect(res.status).toBe(200);
+  });
 });
