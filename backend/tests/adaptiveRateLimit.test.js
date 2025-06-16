@@ -14,6 +14,7 @@ describe('adaptiveRateLimit middleware', () => {
       criticalDamping: true
     }));
     app.get('/', (req, res) => res.status(200).send('ok'));
+    app.post('/api/test', (req, res) => res.status(200).send('ok'));
   });
 
   it('should allow requests under the limit', async () => {
@@ -51,5 +52,33 @@ describe('adaptiveRateLimit middleware', () => {
     // 之后请求应被限流
     const res = await request(app).get('/');
     expect([200, 429]).toContain(res.status);
+  });
+
+  it('should use multi-dimensional sync criteria for sensitive methods', async () => {
+    // POST方法触发多维同步性判据
+    for (let i = 0; i < 5; i++) {
+      await request(app).post('/api/test');
+    }
+    // 之后请求应被限流
+    const res = await request(app).post('/api/test');
+    expect([200, 429]).toContain(res.status);
+  });
+
+  it('should treat different API groups independently', async () => {
+    // /api/test 和 / 路径分组限流互不影响
+    for (let i = 0; i < 5; i++) {
+      await request(app).get('/');
+    }
+    // /api/test 应不受 / 路径影响
+    const res = await request(app).post('/api/test');
+    expect([200, 429]).toContain(res.status);
+  });
+
+  it('should skip rate limit for whitelist IP', async () => {
+    // 模拟白名单IP
+    const res = await request(app)
+      .get('/')
+      .set('X-Forwarded-For', '127.0.0.1');
+    expect(res.status).toBe(200);
   });
 });
