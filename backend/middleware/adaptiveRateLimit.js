@@ -4,8 +4,10 @@
 // 新增：多维同步性判据（方差+熵+峰度），递归API分组限流，白名单IP跳过
 // 优化：普通GET请求极宽松，仅敏感操作严格限流，参数更丝滑
 // 优化：真实IP获取，兼容多级代理
+// 新增：限流与异常行为写入操作日志
 
 const rateMap = new Map();
+const { logOperation } = require("../models/operation_logs");
 
 // 统计量工具
 function entropy(arr) {
@@ -73,7 +75,7 @@ function adaptiveRateLimit(options = {}) {
   // 白名单IP跳过限流
   const whitelist = ['127.0.0.1', '::1'];
 
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const realIp = getRealIp(req);
 
     // Render/Vercel/Cloudflare 代理下的本地/内网IP也跳过限流
@@ -145,6 +147,21 @@ function adaptiveRateLimit(options = {}) {
     ) {
       entry.isLimited = true;
       entry.limitedAt = now;
+      // 记录异常行为日志
+      logOperation({
+        user_id: req.user ? req.user.id : 0,
+        username: req.user ? req.user.username : "system",
+        action: "rate_limit",
+        detail: JSON.stringify({
+          ip: realIp,
+          group,
+          reason: "sync_criteria",
+          intervalVariance,
+          intervalEntropy,
+          intervalKurtosis
+        }),
+        ip: realIp
+      }).catch(() => {});
     } else if (
       entry.isLimited &&
       (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20)
@@ -152,6 +169,21 @@ function adaptiveRateLimit(options = {}) {
       entry.isLimited = false;
       entry.limitedAt = null;
       entry.count = Math.floor(entry.dynamicMax * 0.5);
+      // 记录解除限流日志
+      logOperation({
+        user_id: req.user ? req.user.id : 0,
+        username: req.user ? req.user.username : "system",
+        action: "rate_limit_exit",
+        detail: JSON.stringify({
+          ip: realIp,
+          group,
+          reason: "sync_criteria_exit",
+          intervalVariance,
+          intervalEntropy,
+          intervalKurtosis
+        }),
+        ip: realIp
+      }).catch(() => {});
     }
 
     // 速率估算
