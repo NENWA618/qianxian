@@ -5,6 +5,7 @@
 // 优化：普通GET请求极宽松，仅敏感操作严格限流，参数更丝滑
 // 优化：真实IP获取，兼容多级代理
 // 新增：限流与异常行为写入操作日志
+// 新增：通道/模式自适应参数支持，Langevin动力学异常检测（实验性）
 
 const rateMap = new Map();
 const { logOperation } = require("../models/operation_logs");
@@ -30,6 +31,17 @@ function kurtosis(arr) {
   return n * arr.reduce((a, x) => a + ((x - mean) / std) ** 4, 0) / ((n - 1) * (n - 2)) - 3;
 }
 
+// Langevin动力学异常检测（实验性）
+function langevinNoise(arr) {
+  if (arr.length < 2) return 0;
+  // 计算增量
+  let noiseSum = 0;
+  for (let i = 1; i < arr.length; i++) {
+    noiseSum += Math.abs(arr[i] - arr[i - 1]);
+  }
+  return noiseSum / (arr.length - 1);
+}
+
 // 定期清理过期IP记录，防止内存泄漏
 setInterval(() => {
   const now = Date.now();
@@ -49,6 +61,24 @@ function getGroupKey(req) {
   return 'default';
 }
 
+// 通道/模式判定（如高频/低频用户、夜间/白天、API分组）
+function getChannelMode(req) {
+  // 用户类型
+  let userType = 'guest';
+  if (req.user && req.user.is_super_admin) userType = 'super_admin';
+  else if (req.user && req.user.is_admin) userType = 'admin';
+  else if (req.user) userType = 'user';
+
+  // 时间段
+  const hour = new Date().getHours();
+  let timeMode = (hour >= 0 && hour < 6) ? 'night' : (hour >= 22 ? 'late' : 'day');
+
+  // API分组
+  const group = getGroupKey(req);
+
+  return `${userType}_${timeMode}_${group}`;
+}
+
 // 获取真实IP，兼容多级代理
 function getRealIp(req) {
   const xff = req.headers['x-forwarded-for'];
@@ -61,16 +91,28 @@ function getRealIp(req) {
   return req.ip;
 }
 
+// 通道/模式自适应参数表
+const channelParams = {
+  // userType_timeMode_group: { windowMs, min, max }
+  'super_admin_day_admin': { windowMs: 5 * 60 * 1000, min: 100, max: 1000 },
+  'admin_day_admin': { windowMs: 10 * 60 * 1000, min: 60, max: 600 },
+  'user_night_chat': { windowMs: 30 * 60 * 1000, min: 80, max: 400 },
+  'user_day_chat': { windowMs: 15 * 60 * 1000, min: 40, max: 200 },
+  'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80 },
+  // ...可扩展
+};
+
 function adaptiveRateLimit(options = {}) {
-  const windowMs = options.windowMs || 15 * 60 * 1000;
-  const min = options.min || 30; // 更宽松
-  const max = options.max || 400;
+  // 默认参数
+  const defaultWindowMs = options.windowMs || 15 * 60 * 1000;
+  const defaultMin = options.min || 30;
+  const defaultMax = options.max || 400;
   const criticalDamping = options.criticalDamping || false;
 
   // βcrit判据（触发限流），βexit判据（解除限流），单位：毫秒^2
-  const beta_crit = 2500 * 2500; // 更宽松
+  const beta_crit = 2500 * 2500;
   const beta_exit = 5000 * 5000;
-  const entropyCrit = 1.5; // 更宽松
+  const entropyCrit = 1.5;
 
   // 白名单IP跳过限流
   const whitelist = ['127.0.0.1', '::1'];
@@ -87,6 +129,13 @@ function adaptiveRateLimit(options = {}) {
     ) return next();
 
     const group = getGroupKey(req);
+    const channelMode = getChannelMode(req);
+    // 通道/模式自适应参数
+    const params = channelParams[channelMode] || { windowMs: defaultWindowMs, min: defaultMin, max: defaultMax };
+    const windowMs = params.windowMs;
+    const min = params.min;
+    const max = params.max;
+
     const key = realIp + ':' + group;
     const now = Date.now();
     let entry = rateMap.get(key);
@@ -138,8 +187,16 @@ function adaptiveRateLimit(options = {}) {
     const intervalEntropy = entropy(intervals);
     const intervalKurtosis = kurtosis(intervals);
 
-    // 判据更丝滑：三者均低于阈值才限流
-    const metrics = [intervalVariance < beta_crit, intervalEntropy < entropyCrit, Math.abs(intervalKurtosis) < 10];
+    // Langevin动力学异常检测
+    const langevin = langevinNoise(intervals);
+
+    // 判据更丝滑：三者均低于阈值才限流，且Langevin噪声过大也限流
+    const metrics = [
+      intervalVariance < beta_crit,
+      intervalEntropy < entropyCrit,
+      Math.abs(intervalKurtosis) < 10,
+      langevin < 2000 // Langevin噪声阈值（单位ms）
+    ];
     if (
       isSensitive &&
       !entry.isLimited &&
@@ -155,16 +212,18 @@ function adaptiveRateLimit(options = {}) {
         detail: JSON.stringify({
           ip: realIp,
           group,
+          channelMode,
           reason: "sync_criteria",
           intervalVariance,
           intervalEntropy,
-          intervalKurtosis
+          intervalKurtosis,
+          langevin
         }),
         ip: realIp
       }).catch(() => {});
     } else if (
       entry.isLimited &&
-      (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20)
+      (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20 || langevin > 4000)
     ) {
       entry.isLimited = false;
       entry.limitedAt = null;
@@ -177,10 +236,12 @@ function adaptiveRateLimit(options = {}) {
         detail: JSON.stringify({
           ip: realIp,
           group,
+          channelMode,
           reason: "sync_criteria_exit",
           intervalVariance,
           intervalEntropy,
-          intervalKurtosis
+          intervalKurtosis,
+          langevin
         }),
         ip: realIp
       }).catch(() => {});
