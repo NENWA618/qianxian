@@ -7,9 +7,11 @@
 // 新增：限流与异常行为写入操作日志
 // 新增：通道/模式自适应参数支持，Langevin动力学异常检测（实验性）
 // 新增：支持γr/γd通道阻尼比（论文4.2），可扩展不同用户/通道限流灵活性
+// 新增：参数动态化支持（结合 dynamicParams.js）
 
 const rateMap = new Map();
 const { logOperation } = require("../models/operation_logs");
+const { params, getParams } = require("../config/dynamicParams");
 
 // 统计量工具
 function entropy(arr) {
@@ -93,14 +95,31 @@ function getRealIp(req) {
   return req.ip;
 }
 
-// 通道/模式自适应参数表（论文4.2 γr/γd可扩展）
+// 动态参数获取（支持热更新）
+function getDynamicParams(channelMode) {
+  const config = getParams();
+  // βcrit, βexit, γr/γd, Langevin等参数
+  return {
+    betaCrit: config.betaCrit || 1.23,
+    betaExit: config.betaExit || 0.85,
+    entropyCrit: config.entropyCrit || 1.5,
+    langevinThreshold: config.langevinThreshold || 2000,
+    langevinExit: config.langevinExit || 4000,
+    channelGamma: (config.channelDamping && config.channelDamping[channelMode]) || 2.5,
+    min: 30,
+    max: 400,
+    windowMs: 15 * 60 * 1000
+  };
+}
+
+// 通道/模式自适应参数表（兼容旧逻辑，优先 dynamicParams）
 const channelParams = {
   // userType_timeMode_group: { windowMs, min, max, gamma }
   'super_admin_day_admin': { windowMs: 5 * 60 * 1000, min: 100, max: 1000, gamma: 1 },
   'admin_day_admin': { windowMs: 10 * 60 * 1000, min: 60, max: 600, gamma: 1.5 },
   'user_night_chat': { windowMs: 30 * 60 * 1000, min: 80, max: 400, gamma: 2.5 }, // γr/γd≈2.5
   'user_day_chat': { windowMs: 15 * 60 * 1000, min: 40, max: 200, gamma: 2.5 },
-  'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80, gamma: 3 },
+  'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80, gamma: 3 }
   // ...可扩展
 };
 
@@ -111,18 +130,11 @@ function adaptiveRateLimit(options = {}) {
   const defaultMax = options.max || 400;
   const criticalDamping = options.criticalDamping || false;
 
-  // βcrit判据（触发限流），βexit判据（解除限流），单位：毫秒^2
-  const beta_crit = 2500 * 2500;
-  const beta_exit = 5000 * 5000;
-  const entropyCrit = 1.5;
-
-  // 白名单IP跳过限流
-  const whitelist = ['127.0.0.1', '::1'];
-
   return async (req, res, next) => {
     const realIp = getRealIp(req);
 
     // Render/Vercel/Cloudflare 代理下的本地/内网IP也跳过限流
+    const whitelist = ['127.0.0.1', '::1'];
     if (
       whitelist.includes(realIp) ||
       realIp === '::ffff:127.0.0.1' ||
@@ -132,12 +144,21 @@ function adaptiveRateLimit(options = {}) {
 
     const group = getGroupKey(req);
     const channelMode = getChannelMode(req);
-    // 通道/模式自适应参数
-    const params = channelParams[channelMode] || { windowMs: defaultWindowMs, min: defaultMin, max: defaultMax, gamma: 2.5 };
-    const windowMs = params.windowMs;
-    const min = params.min;
-    const max = params.max;
-    const gamma = params.gamma; // γr/γd通道阻尼比（可用于后续自适应）
+
+    // 动态参数优先
+    const dyn = getDynamicParams(channelMode);
+    const params = channelParams[channelMode] || { windowMs: defaultWindowMs, min: defaultMin, max: defaultMax, gamma: dyn.channelGamma };
+    const windowMs = params.windowMs || dyn.windowMs;
+    const min = params.min || dyn.min;
+    const max = params.max || dyn.max;
+    const gamma = params.gamma || dyn.channelGamma;
+
+    // βcrit判据（触发限流），βexit判据（解除限流）
+    const beta_crit = dyn.betaCrit * dyn.betaCrit * 1000 * 1000;
+    const beta_exit = dyn.betaExit * dyn.betaExit * 1000 * 1000;
+    const entropyCrit = dyn.entropyCrit;
+    const langevinThreshold = dyn.langevinThreshold;
+    const langevinExit = dyn.langevinExit;
 
     const key = realIp + ':' + group;
     const now = Date.now();
@@ -199,7 +220,7 @@ function adaptiveRateLimit(options = {}) {
       intervalVariance < beta_crit,
       intervalEntropy < entropyCrit,
       Math.abs(intervalKurtosis) < 10,
-      langevin < 2000 // Langevin噪声阈值（单位ms）
+      langevin < langevinThreshold // Langevin噪声阈值（单位ms）
     ];
     if (
       isSensitive &&
@@ -228,7 +249,7 @@ function adaptiveRateLimit(options = {}) {
       }).catch(() => {});
     } else if (
       entry.isLimited &&
-      (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20 || langevin > 4000)
+      (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20 || langevin > langevinExit)
     ) {
       entry.isLimited = false;
       entry.limitedAt = null;
