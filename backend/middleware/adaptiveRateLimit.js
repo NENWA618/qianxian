@@ -6,6 +6,7 @@
 // 优化：真实IP获取，兼容多级代理
 // 新增：限流与异常行为写入操作日志
 // 新增：通道/模式自适应参数支持，Langevin动力学异常检测（实验性）
+// 新增：支持γr/γd通道阻尼比（论文4.2），可扩展不同用户/通道限流灵活性
 
 const rateMap = new Map();
 const { logOperation } = require("../models/operation_logs");
@@ -58,6 +59,7 @@ function getGroupKey(req) {
   if (req.path.startsWith('/api/members')) return 'members';
   if (req.path.startsWith('/api/friends')) return 'friends';
   if (req.path.startsWith('/api/admin')) return 'admin';
+  if (req.path.startsWith('/api/api-tokens')) return 'api-tokens';
   return 'default';
 }
 
@@ -91,14 +93,14 @@ function getRealIp(req) {
   return req.ip;
 }
 
-// 通道/模式自适应参数表
+// 通道/模式自适应参数表（论文4.2 γr/γd可扩展）
 const channelParams = {
-  // userType_timeMode_group: { windowMs, min, max }
-  'super_admin_day_admin': { windowMs: 5 * 60 * 1000, min: 100, max: 1000 },
-  'admin_day_admin': { windowMs: 10 * 60 * 1000, min: 60, max: 600 },
-  'user_night_chat': { windowMs: 30 * 60 * 1000, min: 80, max: 400 },
-  'user_day_chat': { windowMs: 15 * 60 * 1000, min: 40, max: 200 },
-  'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80 },
+  // userType_timeMode_group: { windowMs, min, max, gamma }
+  'super_admin_day_admin': { windowMs: 5 * 60 * 1000, min: 100, max: 1000, gamma: 1 },
+  'admin_day_admin': { windowMs: 10 * 60 * 1000, min: 60, max: 600, gamma: 1.5 },
+  'user_night_chat': { windowMs: 30 * 60 * 1000, min: 80, max: 400, gamma: 2.5 }, // γr/γd≈2.5
+  'user_day_chat': { windowMs: 15 * 60 * 1000, min: 40, max: 200, gamma: 2.5 },
+  'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80, gamma: 3 },
   // ...可扩展
 };
 
@@ -131,10 +133,11 @@ function adaptiveRateLimit(options = {}) {
     const group = getGroupKey(req);
     const channelMode = getChannelMode(req);
     // 通道/模式自适应参数
-    const params = channelParams[channelMode] || { windowMs: defaultWindowMs, min: defaultMin, max: defaultMax };
+    const params = channelParams[channelMode] || { windowMs: defaultWindowMs, min: defaultMin, max: defaultMax, gamma: 2.5 };
     const windowMs = params.windowMs;
     const min = params.min;
     const max = params.max;
+    const gamma = params.gamma; // γr/γd通道阻尼比（可用于后续自适应）
 
     const key = realIp + ':' + group;
     const now = Date.now();
@@ -146,7 +149,7 @@ function adaptiveRateLimit(options = {}) {
         last: now,
         lastRate: 0,
         lastWindow: now,
-        gamma: 1,
+        gamma: gamma || 2.5,
         omega0: 1,
         noise: 0.1,
         dynamicMax: min,
@@ -167,6 +170,7 @@ function adaptiveRateLimit(options = {}) {
       entry.timestamps = [now];
       entry.isLimited = false;
       entry.limitedAt = null;
+      entry.gamma = gamma || 2.5;
       return next();
     }
 
@@ -219,7 +223,8 @@ function adaptiveRateLimit(options = {}) {
           intervalKurtosis,
           langevin
         }),
-        ip: realIp
+        ip: realIp,
+        channel_mode: channelMode
       }).catch(() => {});
     } else if (
       entry.isLimited &&
@@ -243,7 +248,8 @@ function adaptiveRateLimit(options = {}) {
           intervalKurtosis,
           langevin
         }),
-        ip: realIp
+        ip: realIp,
+        channel_mode: channelMode
       }).catch(() => {});
     }
 
@@ -252,7 +258,7 @@ function adaptiveRateLimit(options = {}) {
     const dRate = currentRate - entry.lastRate;
     entry.lastRate = currentRate;
 
-    // 临界阻尼自适应调整
+    // 临界阻尼自适应调整（论文γc, γr/γd思想）
     if (criticalDamping) {
       const gamma_c = 2 * Math.sqrt(entry.omega0 * entry.omega0 - entry.noise * entry.noise);
       if (entry.gamma > gamma_c) {
