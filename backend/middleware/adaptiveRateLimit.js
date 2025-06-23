@@ -7,11 +7,11 @@
 // 新增：限流与异常行为写入操作日志
 // 新增：通道/模式自适应参数支持，Langevin动力学异常检测（实验性）
 // 新增：支持γr/γd通道阻尼比（论文4.2），可扩展不同用户/通道限流灵活性
-// 新增：参数动态化支持（结合 dynamicParams.js）
+// 新增：参数动态化支持（结合 dynamicParams.js），参数热更新
 
 const rateMap = new Map();
 const { logOperation } = require("../models/operation_logs");
-const { params, getParams } = require("../config/dynamicParams");
+const { getParams } = require("../config/dynamicParams");
 
 // 统计量工具
 function entropy(arr) {
@@ -37,7 +37,6 @@ function kurtosis(arr) {
 // Langevin动力学异常检测（实验性）
 function langevinNoise(arr) {
   if (arr.length < 2) return 0;
-  // 计算增量
   let noiseSum = 0;
   for (let i = 1; i < arr.length; i++) {
     noiseSum += Math.abs(arr[i] - arr[i - 1]);
@@ -67,17 +66,14 @@ function getGroupKey(req) {
 
 // 通道/模式判定（如高频/低频用户、夜间/白天、API分组）
 function getChannelMode(req) {
-  // 用户类型
   let userType = 'guest';
   if (req.user && req.user.is_super_admin) userType = 'super_admin';
   else if (req.user && req.user.is_admin) userType = 'admin';
   else if (req.user) userType = 'user';
 
-  // 时间段
   const hour = new Date().getHours();
   let timeMode = (hour >= 0 && hour < 6) ? 'night' : (hour >= 22 ? 'late' : 'day');
 
-  // API分组
   const group = getGroupKey(req);
 
   return `${userType}_${timeMode}_${group}`;
@@ -87,18 +83,15 @@ function getChannelMode(req) {
 function getRealIp(req) {
   const xff = req.headers['x-forwarded-for'];
   if (xff) {
-    // 可能有多个IP，取第一个非空
     const ips = xff.split(',').map(ip => ip.trim()).filter(Boolean);
     if (ips.length > 0) return ips[0];
   }
-  // Express会自动识别 req.ip，但有时是 ::1 或 127.0.0.1
   return req.ip;
 }
 
 // 动态参数获取（支持热更新）
 function getDynamicParams(channelMode) {
   const config = getParams();
-  // βcrit, βexit, γr/γd, Langevin等参数
   return {
     betaCrit: config.betaCrit || 1.23,
     betaExit: config.betaExit || 0.85,
@@ -114,17 +107,14 @@ function getDynamicParams(channelMode) {
 
 // 通道/模式自适应参数表（兼容旧逻辑，优先 dynamicParams）
 const channelParams = {
-  // userType_timeMode_group: { windowMs, min, max, gamma }
   'super_admin_day_admin': { windowMs: 5 * 60 * 1000, min: 100, max: 1000, gamma: 1 },
   'admin_day_admin': { windowMs: 10 * 60 * 1000, min: 60, max: 600, gamma: 1.5 },
-  'user_night_chat': { windowMs: 30 * 60 * 1000, min: 80, max: 400, gamma: 2.5 }, // γr/γd≈2.5
+  'user_night_chat': { windowMs: 30 * 60 * 1000, min: 80, max: 400, gamma: 2.5 },
   'user_day_chat': { windowMs: 15 * 60 * 1000, min: 40, max: 200, gamma: 2.5 },
   'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80, gamma: 3 }
-  // ...可扩展
 };
 
 function adaptiveRateLimit(options = {}) {
-  // 默认参数
   const defaultWindowMs = options.windowMs || 15 * 60 * 1000;
   const defaultMin = options.min || 30;
   const defaultMax = options.max || 400;
