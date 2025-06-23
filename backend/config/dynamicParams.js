@@ -5,6 +5,7 @@
  * 新增：参数热更新时间戳、参数变更日志、参数重置功能
  * 新增：A/B测试分组、前端参数快照接口、γc等参数支持
  * 优化：支持批量参数热更新、实验/监控数据驱动自进化
+ * 新增：支持缓存预热相关参数
  */
 
 const params = {
@@ -33,7 +34,12 @@ const params = {
     fractalThreshold: 1.5, // 分形维度阈值，超过则细分分片
     entropyThreshold: 0.8, // 熵阈值，低于则加大分片
     defaultTTL: 60,        // 默认缓存TTL（秒）
-    maxTTL: 300
+    maxTTL: 300,
+    // 新增：热点数据预热配置
+    preheatKeys: [
+      "members:list",
+      "site:content"
+    ]
   },
   // Langevin噪声异常阈值（用于流量/递归异常检测）
   langevinThreshold: 2.5,
@@ -143,7 +149,11 @@ function resetParams(operator = "system") {
       fractalThreshold: 1.5,
       entropyThreshold: 0.8,
       defaultTTL: 60,
-      maxTTL: 300
+      maxTTL: 300,
+      preheatKeys: [
+        "members:list",
+        "site:content"
+      ]
     },
     langevinThreshold: 2.5,
     langevinExit: 4.0,
