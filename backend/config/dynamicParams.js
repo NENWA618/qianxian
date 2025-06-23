@@ -37,6 +37,9 @@ const params = {
   },
   // Langevin噪声异常阈值（用于流量/递归异常检测）
   langevinThreshold: 2.5,
+  langevinExit: 4.0,      // 新增：Langevin噪声解除限流阈值
+  // 信息熵判据
+  entropyCrit: 1.5,       // 新增：信息熵同步性判据
   // A/B测试分组（可用于参数实验，前端可只读）
   abTestGroup: "A", // "A" | "B" | "C" | ...
   // 参数热更新元信息
@@ -143,6 +146,8 @@ function resetParams(operator = "system") {
       maxTTL: 300
     },
     langevinThreshold: 2.5,
+    langevinExit: 4.0,
+    entropyCrit: 1.5,
     abTestGroup: "A"
   };
   for (const k in initial) {
