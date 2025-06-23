@@ -4,25 +4,27 @@
  * 可通过API接口动态调整，所有核心模块引用本文件参数
  * 新增：参数热更新时间戳、参数变更日志、参数重置功能
  * 新增：A/B测试分组、前端参数快照接口、γc等参数支持
+ * 优化：支持批量参数热更新、实验/监控数据驱动自进化
  */
 
 const params = {
   // 限流判据
-  betaCrit: 1.23,         // βcrit: 同步判据临界值
+  betaCrit: 1.23,         // βcrit: 同步判据临界值（高负载时收紧限流/缓存）
   betaExit: 0.85,         // βexit: 去同步判据临界值（低于此值可提前放宽限流/缓存）
   // 临界阻尼参数
   gammaC: 2.0,            // γc: 临界阻尼系数（可用于限流、批量、动画等）
-  // 通道/模式阻尼比（如 γr/γd）
+  // 通道/模式阻尼比（如 γr/γd，支持梦-现实通道/用户类型/场景自适应）
   channelDamping: {
     default: 1.0,
     user_day: 1.0,
     user_night: 0.7,
     guest_day: 1.2,
     guest_night: 0.8,
-    admin: 0.5
+    admin: 0.5,
+    // 可扩展更多通道，如 reality: 1.0, dream: 0.4
   },
   // 递归熵终止条件
-  ncritDelta: 0.12,       // Ncrit判据阈值
+  ncritDelta: 0.12,       // Ncrit判据阈值（递归终止条件，结合分形维度/熵）
   ncritMaxDepth: 8,       // 最大递归深度
   // 缓存分片与TTL
   cache: {
@@ -33,7 +35,7 @@ const params = {
     defaultTTL: 60,        // 默认缓存TTL（秒）
     maxTTL: 300
   },
-  // Langevin噪声异常阈值
+  // Langevin噪声异常阈值（用于流量/递归异常检测）
   langevinThreshold: 2.5,
   // A/B测试分组（可用于参数实验，前端可只读）
   abTestGroup: "A", // "A" | "B" | "C" | ...
@@ -88,6 +90,18 @@ function setParam(key, value, operator = "system") {
     }
   }
   params._meta.lastUpdate = Date.now();
+}
+
+/**
+ * 批量参数热更新（支持实验/监控数据自动推送）
+ * @param {object} updates - { key1: value1, key2: value2, ... }
+ * @param {string} [operator]
+ */
+function setParamsBatch(updates = {}, operator = "system") {
+  if (typeof updates !== "object" || updates === null) return;
+  for (const key in updates) {
+    setParam(key, updates[key], operator);
+  }
 }
 
 /**
@@ -153,6 +167,7 @@ module.exports = {
   params,
   getParams,
   setParam,
+  setParamsBatch,
   getChangeLog,
   resetParams
 };
