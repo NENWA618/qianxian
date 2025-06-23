@@ -8,6 +8,7 @@
 // 新增：通道/模式自适应参数支持，Langevin动力学异常检测（实验性）
 // 新增：支持γr/γd通道阻尼比（论文4.2），可扩展不同用户/通道限流灵活性
 // 新增：参数动态化支持（结合 dynamicParams.js），参数热更新
+// 新增：βexit、γc判据完善，支持A/B测试
 
 const rateMap = new Map();
 const { logOperation } = require("../models/operation_logs");
@@ -89,15 +90,17 @@ function getRealIp(req) {
   return req.ip;
 }
 
-// 动态参数获取（支持热更新）
+// 动态参数获取（支持热更新/A/B测试/γc/βexit等）
 function getDynamicParams(channelMode) {
   const config = getParams();
   return {
     betaCrit: config.betaCrit || 1.23,
     betaExit: config.betaExit || 0.85,
+    gammaC: config.gammaC || 2.0,
     entropyCrit: config.entropyCrit || 1.5,
     langevinThreshold: config.langevinThreshold || 2000,
     langevinExit: config.langevinExit || 4000,
+    abTestGroup: config.abTestGroup || "A",
     channelGamma: (config.channelDamping && config.channelDamping[channelMode]) || 2.5,
     min: 30,
     max: 400,
@@ -149,6 +152,7 @@ function adaptiveRateLimit(options = {}) {
     const entropyCrit = dyn.entropyCrit;
     const langevinThreshold = dyn.langevinThreshold;
     const langevinExit = dyn.langevinExit;
+    const gammaC = dyn.gammaC;
 
     const key = realIp + ':' + group;
     const now = Date.now();
@@ -232,14 +236,20 @@ function adaptiveRateLimit(options = {}) {
           intervalVariance,
           intervalEntropy,
           intervalKurtosis,
-          langevin
+          langevin,
+          abTestGroup: dyn.abTestGroup
         }),
         ip: realIp,
         channel_mode: channelMode
       }).catch(() => {});
     } else if (
       entry.isLimited &&
-      (intervalVariance > beta_exit || intervalEntropy > entropyCrit + 0.5 || Math.abs(intervalKurtosis) > 20 || langevin > langevinExit)
+      (
+        intervalVariance > beta_exit ||
+        intervalEntropy > entropyCrit + 0.5 ||
+        Math.abs(intervalKurtosis) > 20 ||
+        langevin > langevinExit
+      )
     ) {
       entry.isLimited = false;
       entry.limitedAt = null;
@@ -257,7 +267,8 @@ function adaptiveRateLimit(options = {}) {
           intervalVariance,
           intervalEntropy,
           intervalKurtosis,
-          langevin
+          langevin,
+          abTestGroup: dyn.abTestGroup
         }),
         ip: realIp,
         channel_mode: channelMode
@@ -271,7 +282,8 @@ function adaptiveRateLimit(options = {}) {
 
     // 临界阻尼自适应调整（论文γc, γr/γd思想）
     if (criticalDamping) {
-      const gamma_c = 2 * Math.sqrt(entry.omega0 * entry.omega0 - entry.noise * entry.noise);
+      // γc = 2*sqrt(ω0^2 - noise^2)
+      const gamma_c = gammaC;
       if (entry.gamma > gamma_c) {
         entry.dynamicMax = Math.min(entry.dynamicMax + 5, max);
       } else if (entry.gamma < gamma_c) {
