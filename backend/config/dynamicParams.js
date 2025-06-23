@@ -6,7 +6,10 @@
  * 新增：A/B测试分组、前端参数快照接口、γc等参数支持
  * 优化：支持批量参数热更新、实验/监控数据驱动自进化
  * 新增：支持缓存预热相关参数
+ * 新增：参数变更权限控制与操作审计
  */
+
+const { logOperation } = require("../models/operation_logs");
 
 const params = {
   // 限流判据
@@ -56,6 +59,17 @@ const params = {
 };
 
 /**
+ * 权限校验辅助（仅管理员及以上可变更参数）
+ * @param {object} operatorInfo - { user_id, username, is_admin, is_super_admin }
+ * @returns {boolean}
+ */
+function canChangeParams(operatorInfo) {
+  if (!operatorInfo) return false;
+  // 超管或管理员
+  return !!(operatorInfo.is_super_admin || operatorInfo.is_admin);
+}
+
+/**
  * 获取参数快照（可安全暴露给前端，自动过滤敏感字段）
  * @param {boolean} forFrontend
  * @returns {object}
@@ -73,9 +87,15 @@ function getParams(forFrontend = false) {
  * 动态更新参数（支持嵌套key）
  * @param {string} key - 如 'betaCrit' 或 'cache.defaultTTL'
  * @param {any} value
- * @param {string} [operator] - 操作人（可选，便于审计）
+ * @param {object|string} [operator] - 操作人信息或用户名（建议传对象，便于权限校验和审计）
+ * @throws {Error} 无权限时抛出
  */
 function setParam(key, value, operator = "system") {
+  // 权限校验
+  if (typeof operator === "object" && !canChangeParams(operator)) {
+    throw new Error("无权限修改参数");
+  }
+  const operatorName = typeof operator === "object" ? operator.username : operator;
   const keys = key.split(".");
   let obj = params;
   for (let i = 0; i < keys.length - 1; i++) {
@@ -90,7 +110,7 @@ function setParam(key, value, operator = "system") {
       key,
       oldValue,
       newValue: value,
-      operator,
+      operator: operatorName,
       time: Date.now()
     });
     // 最多保留100条
@@ -99,12 +119,22 @@ function setParam(key, value, operator = "system") {
     }
   }
   params._meta.lastUpdate = Date.now();
+  // 操作审计日志
+  if (operatorName && operatorName !== "system" && typeof logOperation === "function") {
+    logOperation({
+      user_id: typeof operator === "object" ? operator.user_id : 0,
+      username: operatorName,
+      action: "param_update",
+      detail: JSON.stringify({ key, oldValue, newValue: value }),
+      channel_mode: null
+    });
+  }
 }
 
 /**
  * 批量参数热更新（支持实验/监控数据自动推送）
  * @param {object} updates - { key1: value1, key2: value2, ... }
- * @param {string} [operator]
+ * @param {object|string} [operator]
  */
 function setParamsBatch(updates = {}, operator = "system") {
   if (typeof updates !== "object" || updates === null) return;
@@ -125,9 +155,13 @@ function getChangeLog() {
 
 /**
  * 重置所有参数为初始值
- * @param {string} [operator]
+ * @param {object|string} [operator]
  */
 function resetParams(operator = "system") {
+  if (typeof operator === "object" && !canChangeParams(operator)) {
+    throw new Error("无权限重置参数");
+  }
+  const operatorName = typeof operator === "object" ? operator.username : operator;
   // 这里可根据实际需要调整为更细粒度的重置
   const initial = {
     betaCrit: 1.23,
@@ -169,12 +203,26 @@ function resetParams(operator = "system") {
       key: "ALL",
       oldValue: "reset",
       newValue: "reset",
-      operator,
+      operator: operatorName,
       time: Date.now()
     });
     if (params._meta.changeLog.length > 100) {
       params._meta.changeLog.shift();
     }
+  }
+  // 操作审计日志
+  if (operatorName && operatorName !== "system" && typeof logOperation === "function") {
+    logOperation({
+      user_id: typeof operator === "object" ? operator.user_id : 0,
+      username: operatorName,
+      action: "param_reset",
+      detail: JSON.stringify({
+        key: "ALL",
+        oldValue: "reset",
+        newValue: "reset"
+      }),
+      channel_mode: null
+    });
   }
 }
 
