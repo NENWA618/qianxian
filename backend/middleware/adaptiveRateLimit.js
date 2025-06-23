@@ -9,6 +9,7 @@
 // 新增：支持γr/γd通道阻尼比（论文4.2），可扩展不同用户/通道限流灵活性
 // 新增：参数动态化支持（结合 dynamicParams.js），参数热更新
 // 新增：βexit、γc判据完善，支持A/B测试
+// 新增：支持 groupKey 选项，允许外部强制指定分组（如Token接口专用限流）
 
 const rateMap = new Map();
 const { logOperation } = require("../models/operation_logs");
@@ -117,11 +118,17 @@ const channelParams = {
   'guest_day_default': { windowMs: 10 * 60 * 1000, min: 20, max: 80, gamma: 3 }
 };
 
+/**
+ * options:
+ *   windowMs, min, max, criticalDamping, groupKey
+ *   groupKey: 强制指定分组（如Token接口专用限流）
+ */
 function adaptiveRateLimit(options = {}) {
   const defaultWindowMs = options.windowMs || 15 * 60 * 1000;
   const defaultMin = options.min || 30;
   const defaultMax = options.max || 400;
   const criticalDamping = options.criticalDamping || false;
+  const forcedGroupKey = options.groupKey || null;
 
   return async (req, res, next) => {
     const realIp = getRealIp(req);
@@ -135,7 +142,7 @@ function adaptiveRateLimit(options = {}) {
       realIp.startsWith('100.')
     ) return next();
 
-    const group = getGroupKey(req);
+    const group = forcedGroupKey || getGroupKey(req);
     const channelMode = getChannelMode(req);
 
     // 动态参数优先
