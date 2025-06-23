@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>千弦家族网站使用指南（2025最新版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="qianxian.png">
+  <link rel="stylesheet" href="main.css">
+  <style>
+    .guide-container {
+      max-width: 900px;
+      width: 100%;
+      margin: 2rem auto;
+      background: #fdfaf2;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(194,164,105,0.07);
+      padding: 2.5rem 2rem;
+      font-size: 1.08rem;
+      line-height: 1.8;
+      box-sizing: border-box;
+      color: #3b2f2f;
+      border: 1.5px solid #e8dfc8;
+    }
+    .guide-container h1, .guide-container h2 {
+      color: #c2a469;
+      text-shadow: 0 1px 0 #fdfaf2;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .guide-container strong {
+      color: #b48a3a;
+      font-weight: bold;
+    }
+    .guide-container ul, .guide-container ol {
+      color: #4d3b1f;
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .guide-container li {
+      margin-bottom: 0.3em;
+    }
+    .guide-container code {
+      background: #f5f2e7;
+      color: #7c5c1a;
+      border: 1px solid #e8dfc8;
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+      font-size: 0.98em;
+    }
+    .guide-container a {
+      color: #b48a3a;
+      text-decoration: underline;
+      font-weight: bold;
+      transition: color 0.2s;
+    }
+    .guide-container a:hover {
+      color: #c2a469;
+    }
+    .guide-container p,
+    .guide-container li,
+    .guide-container ul,
+    .guide-container ol {
+      font-size: 1.07rem;
+      line-height: 1.8;
+    }
+    .guide-container hr {
+      border: none;
+      border-top: 1.5px solid #e8dfc8;
+      margin: 2rem 0;
+    }
+    .guide-container .tip,
+    .guide-container .warn {
+      display: block;
+      padding: 0.7em 1em;
+      border-radius: 8px;
+      margin: 1em 0;
+      font-size: 1rem;
+    }
+    .guide-container .tip {
+      background: #f5fbe9;
+      color: #3b5c1a;
+      border-left: 4px solid #6abf69;
+    }
+    .guide-container .warn {
+      background: #fff4e9;
+      color: #b85c1a;
+      border-left: 4px solid #e8a469;
+    }
+    .guide-container em {
+      color: #c2a469;
+      font-style: normal;
+    }
+    .guide-container ul {
+      list-style: disc inside;
+    }
+    .guide-container ol {
+      list-style: decimal inside;
+    }
+    .guide-container li::marker {
+      color: #c2a469;
+    }
+    @media (max-width: 600px) {
+      .guide-container {
+        padding: 1.2rem 0.5rem;
+        font-size: 0.98rem;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      .guide-container {
+        background: #23201a;
+        color: #f5e9d6;
+        border-color: #3b2f2f;
+      }
+      .guide-container h1, .guide-container h2 {
+        color: #e8dfc8;
+        text-shadow: 0 1px 0 #23201a;
+      }
+      .guide-container strong {
+        color: #ffe7a3;
+      }
+      .guide-container ul, .guide-container ol {
+        color: #e8dfc8;
+      }
+      .guide-container code {
+        background: #2d261a;
+        color: #ffe7a3;
+        border-color: #3b2f2f;
+      }
+      .guide-container a {
+        color: #ffe7a3;
+      }
+      .guide-container a:hover {
+        color: #c2a469;
+      }
+      .guide-container hr {
+        border-top: 1.5px solid #3b2f2f;
+      }
+      .guide-container .tip {
+        background: #2a3320;
+        color: #b6e69a;
+        border-left-color: #6abf69;
+      }
+      .guide-container .warn {
+        background: #332a20;
+        color: #ffd6a3;
+        border-left-color: #e8a469;
+      }
+      .guide-container li::marker {
+        color: #ffe7a3;
+      }
+    }
+    /* 权限对比表样式 */
+    .perm-table {
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      width: 100%;
+      font-size: 1rem;
+    }
+    .perm-table th, .perm-table td {
+      border: 1px solid #e8dfc8;
+      padding: 0.5em 0.8em;
+      text-align: center;
+    }
+    .perm-table th {
+      background: #f5f2e7;
+      color: #b48a3a;
+    }
+    .perm-table td {
+      background: #fffdfa;
+    }
+    @media (prefers-color-scheme: dark) {
+      .perm-table th {
+        background: #2d261a;
+        color: #ffe7a3;
+      }
+      .perm-table td {
+        background: #23201a;
+        color: #f5e9d6;
+      }
+      .perm-table {
+        border-color: #3b2f2f;
+      }
+    }
+    /* 新增：安全提示弹窗样式 */
+    .security-modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(60,50,30,0.18);
+      align-items: center;
+      justify-content: center;
+    }
+    .security-modal.active {
+      display: flex;
+    }
+    .security-modal-content {
+      background: #fffdfa;
+      color: #3b2f2f;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(194,164,105,0.13);
+      padding: 2rem 1.5rem 1.2rem 1.5rem;
+      max-width: 420px;
+      width: 90vw;
+      border: 2px solid #e8dfc8;
+      text-align: center;
+      position: relative;
+    }
+    .security-modal-content h3 {
+      color: #b48a3a;
+      margin-bottom: 1rem;
+    }
+    .security-modal-content button {
+      margin-top: 1.2rem;
+      background: #c2a469;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5em 1.5em;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .security-modal-content button:hover {
+      background: #b48a3a;
+    }
+    @media (prefers-color-scheme: dark) {
+      .security-modal-content {
+        background: #23201a;
+        color: #ffe7a3;
+        border-color: #3b2f2f;
+      }
+      .security-modal-content h3 {
+        color: #ffe7a3;
+      }
+    }
+  </style>
+  <script src="utils.js"></script>
+  <script>
+    // XSS防护：对所有外链和动态内容进行安全处理
+    document.addEventListener('DOMContentLoaded', function () {
+      // 外链安全处理
+      document.querySelectorAll('.guide-container a').forEach(function(a) {
+        if (a.hostname && a.hostname !== location.hostname) {
+          a.setAttribute('rel', 'noopener noreferrer');
+          a.setAttribute('target', '_blank');
+        }
+      });
+      // 安全提示弹窗逻辑
+      if (!window.localStorage.getItem('qianxian_guide_security_ack')) {
+        document.getElementById('security-modal').classList.add('active');
+      }
+      document.getElementById('security-modal-btn').onclick = function() {
+        window.localStorage.setItem('qianxian_guide_security_ack', '1');
+        document.getElementById('security-modal').classList.remove('active');
+      };
+    });
+  </script>
+</head>
+<body>
+  <header class="logo-header">
+    <img src="qianxian.png" alt="千弦 Logo" class="logo" loading="lazy">
+    <h1>千弦家族网站使用指南（2025最新版）</h1>
+    <div style="text-align:right;margin-bottom:1rem;width:100%;">
+      <a href="index.html">← 返回首页</a>
+    </div>
+  </header>
+  <!-- 安全提示弹窗 -->
+  <div class="security-modal" id="security-modal" role="dialog" aria-modal="true" aria-labelledby="security-modal-title">
+    <div class="security-modal-content">
+      <h3 id="security-modal-title">安全提示</h3>
+      <div style="text-align:left;font-size:1.01rem;">
+        <ul style="margin:0 0 0.5em 1.2em;padding:0;">
+          <li>请勿在公共设备上保存密码或自动登录。</li>
+          <li>API Token 仅显示一次，泄露后请立即失效并重新生成。</li>
+          <li>如遇异常请及时联系管理员。</li>
+        </ul>
+      </div>
+      <button id="security-modal-btn" type="button" aria-label="我已知晓">我已知晓</button>
+    </div>
+  </div>
+  <main class="guide-container" tabindex="0">
+    <p style="color:#b48a3a;font-size:1rem;text-align:center;margin-bottom:1.5rem;">
+      本指南内容会随功能更新持续完善，欢迎提出建议。适用于2025年6月后版本，后续如有更新请关注公告。
+    </p>
+    <div class="tip">
+      <strong>特别说明：</strong> 创始人（第一个注册用户）会自动审核通过并获得最高权限，无需等待管理员审核。普通用户注册后需管理员、超管或创始人审核通过后才能登录。
+    </div>
+
+    <h2>一、普通用户功能</h2>
+    <ol>
+      <li>
+        <strong>注册账号</strong>
+        <ul>
+          <li>打开网站首页，点击<code>注册</code>按钮，填写用户名和密码。</li>
+          <li>用户名不限制格式，只要不与他人重复即可。</li>
+          <li>密码要求：至少8位。<strong>建议密码包含字母、数字和特殊字符，提升安全性。</strong></li>
+          <li>注册成功后会提示“请等待管理员或超管审核通过”，审核通过后才能登录使用。</li>
+          <li>如遇“用户名已存在”或“密码长度不足”等提示，请根据页面提示修改后再提交。</li>
+          <li>如遇验证码或CSRF错误，请刷新页面重试。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>登录/退出</strong>
+        <ul>
+          <li>在首页顶部填写用户名和密码，点击<code>登录</code>。</li>
+          <li>登录后页面顶部会显示欢迎信息和<code>退出登录</code>按钮，点击即可安全退出账号。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>API Token 管理</strong>
+        <ul>
+          <li>登录后，点击导航栏的<code>API Token 管理</code>进入Token管理页面。</li>
+          <li>可新建、失效、复制API Token，用于第三方集成或自动化脚本调用API。</li>
+          <li>Token仅显示一次，请妥善保存。失效后不可恢复。</li>
+          <li>如Token泄露，请及时失效并重新生成。</li>
+          <li>Token描述字段需填写，支持中英文、数字、常用符号，禁止注入脚本。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>消息中心</strong>
+        <ul>
+          <li>登录后，页面顶部会显示<code>消息中心</code>按钮，红点提示有新消息。</li>
+          <li>可在消息中心统一查看和处理好友申请、后台审核（管理员）、系统通知等。</li>
+          <li>系统通知仅创始人可编辑，所有用户可在“系统通知”Tab查看。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>修改密码</strong>
+        <ul>
+          <li>登录后，点击页面顶部的<code>修改密码</code>链接，弹出修改密码窗口。</li>
+          <li>输入原密码和新密码（新密码至少8位，建议包含字母、数字和特殊字符），点击<code>提交</code>即可修改。</li>
+          <li>修改成功后会自动退出登录，请使用新密码重新登录。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>查看家族成员</strong>
+        <ul>
+          <li>登录后，点击导航栏的<code>成员列表</code>进入家族成员列表页面。</li>
+          <li>可查看所有成员的ID、用户名和权限徽章（如“管理员”、“超管”等）。</li>
+          <li>点击成员姓名可查看该成员的详细信息（包括昵称、注册时间、好友状态等）。所有已登录用户均可查看详情。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>添加好友与好友申请管理</strong>
+        <ul>
+          <li>在成员列表中，点击<code>添加好友</code>按钮会向对方发送好友申请。</li>
+          <li>对方同意后，双方才会成为好友。已添加的好友会显示“已是好友”状态。</li>
+          <li>不能添加自己为好友，不能重复发送申请。已发送申请后按钮会显示“申请中...”状态，等待对方处理。</li>
+          <li>好友申请有“等待同意”状态，暂不支持撤回申请，请耐心等待对方处理。</li>
+          <li>所有已登录用户可在页面顶部点击<code>消息中心</code>按钮，切换到“好友申请”Tab，查看和处理收到的好友申请。</li>
+          <li>收到好友申请后，可选择同意或拒绝，对方会收到结果提示。处理后，双方会自动成为好友。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>聊天室</strong>
+        <ul>
+          <li>登录后，首页下方会显示聊天室窗口。</li>
+          <li>可与所有在线成员进行公聊，也可与已添加的好友进行私聊。</li>
+          <li>私聊仅限已互为好友的成员之间开启。</li>
+          <li>消息旁会显示用户ID和权限徽章，支持消息历史加载和切换聊天对象。</li>
+          <li>系统自动保留最新600条消息，历史消息会自动清理。</li>
+          <li>支持图片发送和<code>@成员</code>功能，图片可通过上传或粘贴方式发送，@输入时会弹出成员列表。支持常见图片格式（如jpg、png、gif），单张图片大小建议不超过2MB。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>二、管理员功能</h2>
+    <ol>
+      <li>
+        <strong>编辑首页内容</strong>
+        <ul>
+          <li>登录后，右上角会出现<code>编辑首页内容</code>按钮，仅管理员、超管或创始人可见，普通用户不可见。</li>
+          <li>可编辑“关于我们”和“公告”内容，保存后全站生效，所有用户可见。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>查看成员详细信息</strong>
+        <ul>
+          <li>在<code>家族成员列表</code>页面，管理员会看到“操作”列。</li>
+          <li>点击<code>查看详情</code>可查看成员的注册时间、权限等级等信息，并显示对应徽章。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>审核新注册用户</strong>
+        <ul>
+          <li>登录后，页面顶部会出现<code>消息中心</code>按钮，红点提示有新待审核用户。</li>
+          <li>点击<code>消息中心</code>，切换到“后台审核”Tab，可查看所有待审核的新注册用户。</li>
+          <li>点击<code>通过</code>按钮即可审核通过，审核后该用户可正常登录。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>三、超管与创始人功能</h2>
+    <ol>
+      <li>
+        <strong>超管（is_super_admin 用户）</strong>
+        <ul>
+          <li>超管拥有赋予/取消管理员权限的能力（不能操作创始人）。</li>
+          <li>超管身份可由创始人赋予或取消。</li>
+          <li>超管同样拥有审核新注册用户和处理好友申请的权限。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>创始人（ID=1）</strong>
+        <ul>
+          <li>创始人拥有最高权限，可赋予/取消任意成员的超管和管理员身份（除自己外）。</li>
+          <li>进入成员详情页，可见<code>赋予超管</code>/<code>取消超管</code>按钮，仅创始人可操作。</li>
+          <li>系统通知仅创始人可编辑，所有用户可见。</li>
+        </ul>
+      </li>
+      <li>
+        <strong>权限说明</strong>
+        <ul>
+          <li>创始人（ID=1）不可被降权，且始终为超管和管理员。</li>
+          <li>超管可管理管理员权限，但不能赋予/取消超管，仅创始人可操作超管权限。</li>
+          <li>权限变更操作均需确认，操作后会有提示。</li>
+        </ul>
+      </li>
+    </ol>
+
+    <table class="perm-table">
+      <caption style="caption-side:top;text-align:left;font-weight:bold;color:#b48a3a;margin-bottom:0.5em;">权限对比表</caption>
+      <thead>
+        <tr>
+          <th>功能/权限</th>
+          <th>普通成员</th>
+          <th>管理员</th>
+          <th>超管</th>
+          <th>创始人</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>注册/登录/聊天/好友</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>API Token 管理</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>审核新用户</td>
+          <td>❌</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>编辑首页内容</td>
+          <td>❌</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>设为被保/取消被保</td>
+          <td>❌</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>踢人</td>
+          <td>❌</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>赋予/取消管理员</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>赋予/取消超管</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>编辑系统通知</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>✔️</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>四、保人与踢人功能</h2>
+    <ul>
+      <li><strong>保人：</strong> 管理员及以上可将普通成员设为“被保”，被保成员不可被踢出。不能将自己或创始人设为被保。<br>
+        <em>只有最初设为“被保”的管理员/超管/创始人本人可以取消该成员的“被保”状态，其他管理员无法取消。</em>
+      </li>
+      <li><strong>踢人：</strong> 管理员及以上可踢出普通成员（未被保、非管理员/超管/创始人）。踢人操作会注销该账号，操作需谨慎。</li>
+      <li>成员详情页会显示“设为保人/取消保人”与“踢人”按钮，仅有权限时可见。</li>
+    </ul>
+
+    <h2>五、安全与隐私</h2>
+    <ul>
+      <li>所有操作均需登录，重要操作（如修改内容、权限管理、审核新用户）需管理员、超管或创始人身份。</li>
+      <li>网站采用 <strong>HTTPS</strong>、<strong>CSRF 防护</strong>和会话安全机制，保障数据安全。</li>
+      <li>所有重要操作（如注册、登录、修改密码、权限变更等）均需CSRF令牌验证，防止伪造请求。</li>
+      <li>聊天室仅限登录用户，消息实时同步，用户身份和权限一目了然。</li>
+      <li>管理员和超管操作均有权限校验，防止越权和误操作。</li>
+      <li>用户密码加密存储，个人信息仅用于家族社区内部交流。</li>
+      <li>所有用户数据仅用于家族社区内部交流，不会对外泄露或用于商业用途。</li>
+      <li>请勿在公共设备上保存密码或自动登录，防止账号被盗用。</li>
+      <li>建议定期修改密码，遇到异常请及时联系管理员。</li>
+      <li>暂不支持自助找回密码，如忘记请联系管理员协助重置。</li>
+      <li>支持手机访问和添加到桌面，体验更佳（PWA 支持）。如遇界面显示异常可尝试刷新或清除浏览器缓存。</li>
+      <li>所有权限变更、审核等操作均有日志记录，误操作可联系创始人恢复。</li>
+      <li>API Token 仅显示一次，请妥善保管，泄露后可被他人操作你的账号。如泄露请及时失效并重新生成。</li>
+      <li>所有表单输入均有格式校验，防止XSS/SQL注入，重要操作均有日志记录。</li>
+    </ul>
+
+    <h2>六、PWA与推送说明</h2>
+    <ul>
+      <li>支持手机和桌面浏览器添加到主屏幕，离线访问。</li>
+      <li>支持系统通知和@消息Web Push推送（如需推送，请允许浏览器通知权限）。</li>
+    </ul>
+
+    <h2>七、常见问题解答</h2>
+    <ul>
+      <li><strong>注册后无法登录？</strong><br>
+        新注册账号需要管理员、超管或创始人审核通过后才能登录，创始人注册自动审核通过。请耐心等待审核。如有疑问可联系管理员。</li>
+      <li><strong>注册/登录失败？</strong><br>
+        检查用户名是否已存在、密码长度是否足够，或联系管理员协助。如遇CSRF或验证码错误，请刷新页面重试。</li>
+      <li><strong>如何修改密码？</strong><br>
+        登录后点击页面顶部<code>修改密码</code>链接，输入原密码和新密码即可修改。修改成功后需重新登录。</li>
+      <li><strong>忘记密码怎么办？</strong><br>
+        暂不支持自助找回密码，如忘记请联系管理员协助重置。</li>
+      <li><strong>权限操作失败？</strong><br>
+        仅超管或创始人可进行权限管理，普通管理员无权操作超管权限。</li>
+      <li><strong>聊天室无法使用？</strong><br>
+        请确认已登录账号，未登录用户无法进入聊天室。如遇网络问题请刷新页面或稍后重试。</li>
+      <li><strong>好友功能无法使用？</strong><br>
+        需登录后才能添加好友，不能添加自己为好友。好友申请需对方同意后才生效。已发送申请后请等待对方处理，暂不支持撤回。</li>
+      <li><strong>如何处理好友申请/后台审核？</strong><br>
+        登录后点击页面顶部<code>消息中心</code>按钮，在对应Tab统一查看和处理好友申请、后台审核等。</li>
+      <li><strong>系统通知在哪里查看？</strong><br>
+        系统通知会在<code>消息中心</code>弹窗的“系统通知”Tab显示，如有重要公告会第一时间推送。</li>
+      <li><strong>审核通过后如何得知？</strong><br>
+        审核通过后不会有邮件或短信通知，请自行尝试登录或联系管理员确认。如长时间未审核通过，请勿重复注册，可通过消息中心或家族群联系管理员协助。
+      </li>
+      <li><strong>技术支持与反馈</strong><br>
+        如有技术问题或建议，可通过消息中心联系管理员，或在家族群内反馈。
+      </li>
+      <li><strong>被保成员能被其他管理员取消保护吗？</strong><br>
+        只有最初设为保护的管理员/超管/创始人本人可以取消该成员的被保状态，其他管理员无法取消。
+      </li>
+      <li><strong>后端API文档</strong><br>
+        开发者可访问 <code>/api-docs</code> 查看Swagger在线API文档，接口示例与错误码详见文档说明。
+      </li>
+    </ul>
+
+    <h2>八、温馨提示</h2>
+    <ul>
+      <li>请妥善保管账号密码，勿与他人共享。</li>
+      <li>请文明发言，尊重他人，共同营造和谐的社区氛围。</li>
+      <li>管理员和超管请谨慎操作权限变更和用户审核，避免误操作。</li>
+      <li>支持手机访问和添加到桌面，体验更佳。如遇界面异常可尝试刷新或清除浏览器缓存。</li>
+      <li>如有新功能上线，请关注公告和本指南更新。</li>
+    </ul>
+
+    <hr>
+    <p style="text-align:center;color:#888;margin-top:2rem;">
+      如有疑问，请联系网站管理员或创始人。<br>
+      <strong>如遇技术问题或建议，可通过消息中心联系管理员，或在家族群内反馈。</strong><br>
+      欢迎大家共同维护千弦家族的温馨社区！
+    </p>
+    <p style="text-align:center;color:#bbb;font-size:0.95rem;margin-top:1.5rem;">
+      © 2025 千弦家族社区 保留所有权利
+    </p>
+  </main>
+</body>
+</html>
