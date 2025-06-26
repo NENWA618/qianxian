@@ -7,6 +7,12 @@
  * 优化：支持批量参数热更新、实验/监控数据驱动自进化
  * 新增：支持缓存预热相关参数
  * 新增：参数变更权限控制与操作审计
+ * 
+ * 2025-06-26 优化：
+ * - Ncrit/递归熵参数细化，支持更多场景（如分页、批量、推送）
+ * - Langevin/Banach判据参数补充
+ * - 支持实验数据/EEG参数自动校准
+ * - 参数分组更细粒度，便于A/B测试和多通道自适应
  */
 
 const { logOperation } = require("../models/operation_logs");
@@ -25,11 +31,26 @@ const params = {
     guest_day: 1.2,
     guest_night: 0.8,
     admin: 0.5,
-    // 可扩展更多通道，如 reality: 1.0, dream: 0.4
+    reality: 1.0,   // 新增：现实通道
+    dream: 0.4      // 新增：梦通道
   },
-  // 递归熵终止条件
-  ncritDelta: 0.12,       // Ncrit判据阈值（递归终止条件，结合分形维度/熵）
-  ncritMaxDepth: 8,       // 最大递归深度
+  // 递归熵终止条件（Ncrit判据，支持多场景）
+  ncrit: {
+    delta: 0.12,         // Ncrit判据阈值（递归终止条件，结合分形维度/熵）
+    maxDepth: 8,         // 最大递归深度
+    forPaging: {         // 分页专用
+      delta: 0.10,
+      maxDepth: 6
+    },
+    forBatch: {          // 批量任务专用
+      delta: 0.15,
+      maxDepth: 10
+    },
+    forPush: {           // 推送/Socket专用
+      delta: 0.18,
+      maxDepth: 5
+    }
+  },
   // 缓存分片与TTL
   cache: {
     minShard: 1,
@@ -45,12 +66,27 @@ const params = {
     ]
   },
   // Langevin噪声异常阈值（用于流量/递归异常检测）
-  langevinThreshold: 2.5,
-  langevinExit: 4.0,      // 新增：Langevin噪声解除限流阈值
+  langevin: {
+    threshold: 2.5,      // 异常检测阈值
+    exit: 4.0            // 解除限流阈值
+  },
+  // Banach收敛判据
+  banach: {
+    lambda: 0.9,         // 收敛系数
+    minSteps: 3,         // 最小收敛步数
+    maxSteps: 10         // 最大收敛步数
+  },
   // 信息熵判据
-  entropyCrit: 1.5,       // 新增：信息熵同步性判据
+  entropyCrit: 1.5,       // 信息熵同步性判据
   // A/B测试分组（可用于参数实验，前端可只读）
   abTestGroup: "A", // "A" | "B" | "C" | ...
+  // 实验/EEG参数映射（可自动校准）
+  eegMapping: {
+    gammaR: 2.5,         // γr（现实通道）
+    gammaD: 1.0,         // γd（梦通道）
+    ncritREM: 22,        // REM阶段Ncrit
+    entropyREM: 0.5      // REM阶段熵速率
+  },
   // 参数热更新元信息
   _meta: {
     lastUpdate: Date.now(),
@@ -84,8 +120,8 @@ function getParams(forFrontend = false) {
 }
 
 /**
- * 动态更新参数（支持嵌套key）
- * @param {string} key - 如 'betaCrit' 或 'cache.defaultTTL'
+ * 动态更新参数（支持嵌套key，支持多级如 'ncrit.forPaging.delta'）
+ * @param {string} key - 如 'betaCrit' 或 'cache.defaultTTL' 或 'ncrit.forPaging.delta'
  * @param {any} value
  * @param {object|string} [operator] - 操作人信息或用户名（建议传对象，便于权限校验和审计）
  * @throws {Error} 无权限时抛出
@@ -173,10 +209,17 @@ function resetParams(operator = "system") {
       user_night: 0.7,
       guest_day: 1.2,
       guest_night: 0.8,
-      admin: 0.5
+      admin: 0.5,
+      reality: 1.0,
+      dream: 0.4
     },
-    ncritDelta: 0.12,
-    ncritMaxDepth: 8,
+    ncrit: {
+      delta: 0.12,
+      maxDepth: 8,
+      forPaging: { delta: 0.10, maxDepth: 6 },
+      forBatch: { delta: 0.15, maxDepth: 10 },
+      forPush: { delta: 0.18, maxDepth: 5 }
+    },
     cache: {
       minShard: 1,
       maxShard: 8,
@@ -189,10 +232,23 @@ function resetParams(operator = "system") {
         "site:content"
       ]
     },
-    langevinThreshold: 2.5,
-    langevinExit: 4.0,
+    langevin: {
+      threshold: 2.5,
+      exit: 4.0
+    },
+    banach: {
+      lambda: 0.9,
+      minSteps: 3,
+      maxSteps: 10
+    },
     entropyCrit: 1.5,
-    abTestGroup: "A"
+    abTestGroup: "A",
+    eegMapping: {
+      gammaR: 2.5,
+      gammaD: 1.0,
+      ncritREM: 22,
+      entropyREM: 0.5
+    }
   };
   for (const k in initial) {
     params[k] = JSON.parse(JSON.stringify(initial[k]));
@@ -232,5 +288,6 @@ module.exports = {
   setParam,
   setParamsBatch,
   getChangeLog,
-  resetParams
+  resetParams,
+  canChangeParams
 };
