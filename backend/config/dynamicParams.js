@@ -13,6 +13,7 @@
  * - Langevin/Banach判据参数补充
  * - 支持实验数据/EEG参数自动校准
  * - 参数分组更细粒度，便于A/B测试和多通道自适应
+ * - 新增：βcrit/βexit双阈值判据，支持缓存/限流自适应刷新与自恢复
  */
 
 const { logOperation } = require("../models/operation_logs");
