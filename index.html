@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#e8dfc8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="千弦">
+  <title>千弦家族官方网站</title>
+
+  <link rel="icon" href="qianxian.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="qianxian.png">
+  <link rel="stylesheet" href="main.css">
+  <!-- 建议：全局API地址统一注入 -->
+  <script>
+    window.API_BASE_URL = 'https://qianxian-backend.onrender.com';
+  </script>
+  <!-- PWA增强：注册Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').catch(function(e){});
+      });
+    }
+  </script>
+  <!-- 新增：zxcvbn 密码强度库 -->
+  <script src="https://cdn.jsdelivr.net/npm/zxcvbn@4.4.2/dist/zxcvbn.js"></script>
+  <!-- 新增：DOMPurify 富文本安全库 -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <!-- 新增：自适应渲染与分形分析支持 -->
+  <script>
+    // 动态主题色/自适应渲染（递归熵、分形维数等参数由 main.js 注入）
+    window.addEventListener('DOMContentLoaded', function() {
+      if (window.__adaptiveThemeColor) {
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', window.__adaptiveThemeColor);
+      }
+    });
+  </script>
+</head>
+<body>
+  <!-- Header Section -->
+  <header class="logo-header">
+    <img src="qianxian.png" alt="千弦 Logo" class="logo" loading="lazy">
+    <h1>千弦</h1>
+    <div class="header-links">
+      <h2><a href="members.html">成员列表</a></h2>
+      <h2><a href="api_tokens.html" id="api-token-link">API Token 管理</a></h2>
+      <h2><a href="zhinan.html">使用指南</a></h2>
+      <!-- 通知中心入口按钮将由 main.js 动态插入到 admin-link 前 -->
+    </div>
+    <!-- 新增：后台管理入口占位 -->
+    <div id="admin-link" style="text-align:right;margin:0.5rem 0;"></div>
+    <!-- 新增：弹出聊天小窗按钮（可选，移动端可隐藏） -->
+    <button id="open-chat-float-btn" style="position:absolute;right:24px;top:24px;z-index:1000;display:none;background:#c2a469;color:#fff;border:none;border-radius:8px;padding:0.5em 1em;box-shadow:0 2px 8px rgba(0,0,0,0.08);cursor:pointer;">
+      聊天小窗
+    </button>
+  </header>
+
+  <!-- About Section -->
+  <section class="about" id="about-section">
+    <!-- 动态渲染：团队介绍、分形维数/递归熵等自适应内容由 main.js 注入 -->
+    <div id="about-dynamic"></div>
+  </section>
+
+  <!-- Announcement Section -->
+  <section class="announcement" id="announcement-section">
+    <!-- 动态渲染：公告内容、系统状态、Ncrit/同步性等由 main.js 注入 -->
+    <div id="announcement-dynamic"></div>
+  </section>
+
+  <!-- 新增：系统参数热更新与观测面板（仅管理员可见，由 main.js 动态渲染） -->
+  <div id="dynamic-params-panel" style="display:none;"></div>
+
+  <!-- 新增：分形分析可视化面板（由 main.js 动态渲染） -->
+  <div id="fractal-visualization-panel" style="display:none;"></div>
+
+  <!-- 系统通知弹窗（由main.js动态渲染） -->
+  <div id="system-notification-popup" style="display:none;"></div>
+
+  <!-- 通知中心弹窗（由main.js动态渲染） -->
+  <div id="notification-center-popup" style="display:none;"></div>
+
+  <!-- 后台管理弹窗（由main.js动态渲染） -->
+  <div id="admin-panel-popup" style="display:none;"></div>
+
+  <!-- 好友申请弹窗（由main.js动态渲染） -->
+  <div id="friend-request-popup" style="display:none;"></div>
+
+  <!-- 新增：递归熵/Ncrit/分形维数等自适应提示浮层 -->
+  <div id="adaptive-hint-popup" style="display:none;"></div>
+
+  <!-- 先引入 utils.js，再引入 socket.io，再引入 main.js -->
+  <script src="utils.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="main.js"></script>
+  <script>
+    // 聊天小窗按钮逻辑（可选，移动端可隐藏）
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.getElementById('open-chat-float-btn');
+      var isMobile = window.matchMedia("(max-width: 768px)").matches;
+      if (btn) {
+        btn.style.display = isMobile ? 'block' : 'none';
+        btn.addEventListener('click', function() {
+          // 在此处添加打开聊天小窗的逻辑
+          alert('打开聊天小窗');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
